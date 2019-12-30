@@ -387,7 +387,7 @@ pub async fn update_virtual_devices<'a>(
         },
     );
 
-    zpools.iter().fold(HashMap::new(), |hm, pool| hm);
+    // zpools.iter().fold(HashMap::new(), |hm, pool| hm);
 
     for pool in zpools {
         // Create a map of hostid to device.
