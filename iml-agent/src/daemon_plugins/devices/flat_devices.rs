@@ -449,7 +449,7 @@ impl TryIntoDeviceId for &devices::Device {
 }
 
 #[derive(Debug, serde::Serialize, Eq, PartialEq, Ord, PartialOrd, Clone)]
-pub struct DeviceId(String);
+pub struct DeviceId(pub String);
 
 /// The current type of Devices we support
 #[derive(Debug, serde::Serialize)]

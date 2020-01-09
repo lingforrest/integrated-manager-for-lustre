@@ -120,11 +120,48 @@ impl DaemonPlugin for Devices {
                 Ok(None)
             }
         }
-            .boxed()
+        .boxed()
     }
     fn teardown(&mut self) -> Result<(), ImlAgentError> {
         self.trigger.take();
 
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::daemon_plugins::{
+        devices::flat_devices::{process_tree, DeviceId, FlatDevices},
+        DaemonPlugin, Output,
+    };
+    use iml_wire_types::{db::DeviceHost, Fqdn};
+    use insta::assert_debug_snapshot;
+    use serde_json;
+    use std::fs;
+
+    #[test]
+    fn test_dev_tree_conversion() {
+        use std::default::Default;
+        let f = fs::read_to_string("./fixtures.json").unwrap();
+        let x = serde_json::from_str(&f).unwrap();
+
+        // let fqdn = Fqdn("host1".into());
+
+        // let mut dhs = DeviceHost::default();
+
+        // let mut ds = Devices::default();
+
+        let id = DeviceId("none".to_string());
+
+        let mut fds = FlatDevices::default();
+
+        process_tree(&x, Some(id), &mut fds);
+
+        println!("{:#?}", fds);
+
+        // assert_debug_snapshot!("device hosts", dhs);
+        // assert_debug_snapshot!("devices", ds);
     }
 }
