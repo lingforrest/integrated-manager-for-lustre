@@ -7,13 +7,13 @@ use crate::{
     error::ImlDevicesError,
 };
 use futures::TryStreamExt;
-use iml_postgres::{connect, select_all, Client, Transaction};
+use iml_postgres::{select_all, Client, Transaction};
 use iml_wire_types::{
     db::{Device, DeviceHost, DeviceId, DeviceIds, DeviceType, MountPath, Name, Paths, Size},
     Fqdn,
 };
 use std::{
-    collections::{BTreeMap, BTreeSet, HashMap},
+    collections::{BTreeMap, BTreeSet},
     iter,
     path::PathBuf,
 };
