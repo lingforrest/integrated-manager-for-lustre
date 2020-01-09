@@ -161,6 +161,8 @@ mod tests {
 
         println!("{:#?}", fds);
 
+        assert_debug_snapshot!("flat_devices", fds);
+
         // assert_debug_snapshot!("device hosts", dhs);
         // assert_debug_snapshot!("devices", ds);
     }
