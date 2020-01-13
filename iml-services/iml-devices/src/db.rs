@@ -498,29 +498,3 @@ pub async fn update_virtual_devices<'a>(
 
 //     Ok(())
 // }
-
-// #[cfg(test)]
-// mod tests {
-//     use super::*;
-//     use iml_wire_types::Fqdn;
-//     use insta::assert_debug_snapshot;
-//     use serde_json;
-//     use std::fs;
-
-//     #[test]
-//     fn test_dev_tree_conversion() {
-//         let f = fs::read_to_string("./fixtures.json").unwrap();
-//         let x = serde_json::from_str(&f).unwrap();
-
-//         let fqdn = Fqdn("host1".into());
-
-//         let mut dhs = DeviceHosts::default();
-
-//         let mut ds = Devices::default();
-
-//         process_tree(&x, &fqdn, None, &mut dhs, &mut ds);
-
-//         assert_debug_snapshot!("device hosts", dhs);
-//         assert_debug_snapshot!("devices", ds);
-//     }
-// }
