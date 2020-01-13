@@ -8,18 +8,19 @@
 mod components;
 mod ctx_help;
 mod generated;
+mod notification;
 mod page;
 mod route;
+#[cfg(test)]
+mod test_utils;
 
-use components::{
-    breadcrumbs::BreadCrumbs, update_activity_health, ActivityHealth,
-};
+use components::{breadcrumbs::BreadCrumbs, tree, update_activity_health, ActivityHealth};
 use generated::css_classes::C;
 use iml_wire_types::warp_drive;
 use js_sys::Function;
 use route::Route;
-use seed::{events::Listener, prelude::*, *};
-use std::{cmp, collections::HashMap, mem};
+use seed::{app::MessageMapper, prelude::*, Listener, *};
+use std::{cmp, mem};
 use wasm_bindgen::JsCast;
 use web_sys::{EventSource, MessageEvent};
 use Visibility::*;
@@ -28,7 +29,7 @@ const TITLE_SUFFIX: &str = "IML";
 const USER_AGENT_FOR_PRERENDERING: &str = "ReactSnap";
 const STATIC_PATH: &str = "static";
 const SLIDER_WIDTH_PX: u32 = 5;
-const MAX_SIDE_PERCENTAGE: f32 = 35f32;
+const MAX_SIDE_PERCENTAGE: f32 = 35_f32;
 
 /// This depends on where and how https://github.com/whamcloud/Online-Help is deployed.
 /// With `nginx` when config is like
@@ -56,7 +57,7 @@ impl Visibility {
     }
 }
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum WatchState {
     Watching,
     Open,
@@ -76,15 +77,18 @@ impl WatchState {
             _ => false,
         }
     }
+
     pub fn is_watching(self) -> bool {
         match self {
             WatchState::Watching => true,
             _ => false,
         }
     }
+
     pub fn should_update(self) -> bool {
         self.is_watching() || self.is_open()
     }
+
     pub fn update(&mut self) {
         match self {
             WatchState::Close => {
@@ -104,7 +108,6 @@ impl WatchState {
 //     Model
 // ------ ------
 
-#[derive(Debug)]
 pub struct Model {
     pub route: Route<'static>,
     pub menu_visibility: Visibility,
@@ -116,6 +119,8 @@ pub struct Model {
     pub locks: warp_drive::Locks,
     pub activity_health: ActivityHealth,
     pub breadcrumbs: BreadCrumbs<Route<'static>>,
+    notification: notification::Model,
+    pub tree: tree::Model,
 }
 
 pub fn register_eventsource_handle<T, F>(
@@ -152,28 +157,15 @@ fn before_mount(_: Url) -> BeforeMount {
 fn after_mount(url: Url, orders: &mut impl Orders<Msg>) -> AfterMount<Model> {
     let es = EventSource::new("https://localhost:7444/messaging").unwrap();
 
-    register_eventsource_handle(
-        EventSource::set_onopen,
-        Msg::EventSourceConnect,
-        &es,
-        orders,
-    );
+    register_eventsource_handle(EventSource::set_onopen, Msg::EventSourceConnect, &es, orders);
 
-    register_eventsource_handle(
-        EventSource::set_onmessage,
-        Msg::EventSourceMessage,
-        &es,
-        orders,
-    );
+    register_eventsource_handle(EventSource::set_onmessage, Msg::EventSourceMessage, &es, orders);
 
-    register_eventsource_handle(
-        EventSource::set_onerror,
-        Msg::EventSourceError,
-        &es,
-        orders,
-    );
+    register_eventsource_handle(EventSource::set_onerror, Msg::EventSourceError, &es, orders);
 
     orders.send_msg(Msg::UpdatePageTitle);
+
+    orders.proxy(Msg::Notification).perform_cmd(notification::init());
 
     AfterMount::new(Model {
         route: url.into(),
@@ -181,17 +173,18 @@ fn after_mount(url: Url, orders: &mut impl Orders<Msg>) -> AfterMount<Model> {
         in_prerendering: is_in_prerendering(),
         manage_menu_state: WatchState::default(),
         track_slider: false,
-        side_width_percentage: 20f32,
+        side_width_percentage: 20_f32,
         records: warp_drive::Cache::default(),
-        locks: HashMap::new(),
-        activity_health: ActivityHealth::new(),
+        locks: im::hashmap!(),
+        activity_health: ActivityHealth::default(),
         breadcrumbs: BreadCrumbs::default(),
+        notification: notification::Model::default(),
+        tree: tree::Model::default(),
     })
 }
 
 fn is_in_prerendering() -> bool {
-    let user_agent =
-        window().navigator().user_agent().expect("cannot get user agent");
+    let user_agent = window().navigator().user_agent().expect("cannot get user agent");
 
     user_agent == USER_AGENT_FOR_PRERENDERING
 }
@@ -225,10 +218,13 @@ pub enum Msg {
     EventSourceConnect(JsValue),
     EventSourceMessage(MessageEvent),
     EventSourceError(JsValue),
-    Records(warp_drive::Cache),
-    RecordChange(warp_drive::RecordChange),
+    Records(Box<warp_drive::Cache>),
+    RecordChange(Box<warp_drive::RecordChange>),
+    RemoveRecord(warp_drive::RecordId),
     Locks(warp_drive::Locks),
     WindowClick,
+    Notification(notification::Msg),
+    Tree(tree::Msg),
 }
 
 pub fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg>) {
@@ -242,8 +238,7 @@ pub fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg>) {
             model.breadcrumbs.push(model.route.clone());
         }
         Msg::UpdatePageTitle => {
-            let title =
-                format!("{} - {}", model.route.to_string(), TITLE_SUFFIX);
+            let title = format!("{} - {}", model.route.to_string(), TITLE_SUFFIX);
 
             document().set_title(&title);
         }
@@ -257,10 +252,8 @@ pub fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg>) {
 
             let msg = match msg {
                 warp_drive::Message::Locks(locks) => Msg::Locks(locks),
-                warp_drive::Message::Records(records) => Msg::Records(records),
-                warp_drive::Message::RecordChange(record_change) => {
-                    Msg::RecordChange(record_change)
-                }
+                warp_drive::Message::Records(records) => Msg::Records(Box::new(records)),
+                warp_drive::Message::RecordChange(record_change) => Msg::RecordChange(Box::new(record_change)),
             };
 
             orders.send_msg(msg);
@@ -269,24 +262,48 @@ pub fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg>) {
             log("EventSource error.");
         }
         Msg::Records(records) => {
-            model.records = records;
+            model.records = *records;
 
-            model.activity_health =
-                update_activity_health(&model.records.active_alert);
+            let old = model.activity_health;
+            model.activity_health = update_activity_health(&model.records.active_alert);
+
+            orders
+                .proxy(Msg::Notification)
+                .send_msg(notification::generate(None, &old, &model.activity_health));
+
+            orders.proxy(Msg::Tree).send_msg(tree::Msg::Reset);
         }
-        Msg::RecordChange(record_change) => match record_change {
+        Msg::RecordChange(record_change) => match *record_change {
             warp_drive::RecordChange::Update(record) => match record {
                 warp_drive::Record::ActiveAlert(x) => {
+                    let msg = x.message.clone();
+
                     model.records.active_alert.insert(x.id, x);
 
-                    model.activity_health =
-                        update_activity_health(&model.records.active_alert);
+                    let old = model.activity_health;
+
+                    model.activity_health = update_activity_health(&model.records.active_alert);
+                    orders.proxy(Msg::Notification).send_msg(notification::generate(
+                        Some(msg),
+                        &old,
+                        &model.activity_health,
+                    ));
                 }
                 warp_drive::Record::Filesystem(x) => {
-                    model.records.filesystem.insert(x.id, x);
+                    let id = x.id;
+                    if model.records.filesystem.insert(x.id, x).is_none() {
+                        orders
+                            .proxy(Msg::Tree)
+                            .send_msg(tree::Msg::Add(warp_drive::RecordId::Filesystem(id)));
+                    };
                 }
                 warp_drive::Record::Host(x) => {
-                    model.records.host.insert(x.id, x);
+                    let id = x.id;
+                    if model.records.host.insert(x.id, x).is_none() {
+                        orders
+                            .proxy(Msg::Tree)
+                            .send_msg(tree::Msg::Add(warp_drive::RecordId::Host(id)));
+                    };
                 }
                 warp_drive::Record::ManagedTargetMount(x) => {
                     model.records.managed_target_mount.insert(x.id, x);
@@ -295,60 +312,57 @@ pub fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg>) {
                     model.records.ost_pool.insert(x.id, x);
                 }
                 warp_drive::Record::OstPoolOsts(x) => {
-                    model.records.ost_pool_osts.insert(x.id, x);
+                    let id = x.id;
+                    if model.records.ost_pool_osts.insert(x.id, x).is_none() {
+                        orders
+                            .proxy(Msg::Tree)
+                            .send_msg(tree::Msg::Add(warp_drive::RecordId::OstPoolOsts(id)));
+                    };
                 }
                 warp_drive::Record::StratagemConfig(x) => {
                     model.records.stratagem_config.insert(x.id, x);
                 }
                 warp_drive::Record::Target(x) => {
-                    model.records.target.insert(x.id, x);
+                    let id = x.id;
+                    if model.records.target.insert(x.id, x).is_none() {
+                        orders
+                            .proxy(Msg::Tree)
+                            .send_msg(tree::Msg::Add(warp_drive::RecordId::Target(id)));
+                    };
                 }
                 warp_drive::Record::Volume(x) => {
                     model.records.volume.insert(x.id, x);
                 }
                 warp_drive::Record::VolumeNode(x) => {
-                    model.records.volume_node.insert(x.id, x);
+                    let id = x.id;
+                    if model.records.volume_node.insert(x.id, x).is_none() {
+                        orders
+                            .proxy(Msg::Tree)
+                            .send_msg(tree::Msg::Add(warp_drive::RecordId::VolumeNode(id)));
+                    };
                 }
                 warp_drive::Record::LnetConfiguration(x) => {
                     model.records.lnet_configuration.insert(x.id, x);
                 }
             },
-            warp_drive::RecordChange::Delete(record_id) => match record_id {
-                warp_drive::RecordId::ActiveAlert(x) => {
-                    model.records.active_alert.remove(&x);
-                }
-                warp_drive::RecordId::Filesystem(x) => {
-                    model.records.filesystem.remove(&x);
-                }
-                warp_drive::RecordId::Host(x) => {
-                    model.records.host.remove(&x);
-                }
-                warp_drive::RecordId::ManagedTargetMount(x) => {
-                    model.records.managed_target_mount.remove(&x);
-                }
-                warp_drive::RecordId::OstPool(x) => {
-                    model.records.ost_pool.remove(&x);
-                }
-                warp_drive::RecordId::OstPoolOsts(x) => {
-                    model.records.ost_pool_osts.remove(&x);
-                }
-                warp_drive::RecordId::StratagemConfig(x) => {
-                    model.records.stratagem_config.remove(&x);
-                }
-                warp_drive::RecordId::Target(x) => {
-                    model.records.target.remove(&x);
-                }
-                warp_drive::RecordId::Volume(x) => {
-                    model.records.volume.remove(&x);
-                }
-                warp_drive::RecordId::VolumeNode(x) => {
-                    model.records.volume_node.remove(&x);
-                }
-                warp_drive::RecordId::LnetConfiguration(x) => {
-                    model.records.lnet_configuration.remove(&x);
-                }
-            },
+            warp_drive::RecordChange::Delete(record_id) => {
+                match record_id {
+                    warp_drive::RecordId::Filesystem(_)
+                    | warp_drive::RecordId::VolumeNode(_)
+                    | warp_drive::RecordId::Host(_)
+                    | warp_drive::RecordId::OstPoolOsts(_)
+                    | warp_drive::RecordId::Target(_) => {
+                        orders.proxy(Msg::Tree).send_msg(tree::Msg::Remove(record_id));
+                    }
+                    _ => {}
+                };
+
+                orders.send_msg(Msg::RemoveRecord(record_id));
+            }
         },
+        Msg::RemoveRecord(id) => {
+            model.records.remove_record(&id);
+        }
         Msg::Locks(locks) => {
             model.locks = locks;
         }
@@ -370,20 +384,24 @@ pub fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg>) {
 
             let x_position = cmp::max(0, x_position) as u32;
 
-            let side_width_percentage: f32 =
-                (x_position as f32 / overlay_width_px as f32) * 100_f32;
+            let side_width_percentage: f32 = (x_position as f32 / overlay_width_px as f32) * 100_f32;
 
-            model.side_width_percentage =
-                if MAX_SIDE_PERCENTAGE <= side_width_percentage {
-                    MAX_SIDE_PERCENTAGE
-                } else {
-                    side_width_percentage
-                };
+            model.side_width_percentage = if MAX_SIDE_PERCENTAGE <= side_width_percentage {
+                MAX_SIDE_PERCENTAGE
+            } else {
+                side_width_percentage
+            };
         }
         Msg::WindowClick => {
             if model.manage_menu_state.should_update() {
                 model.manage_menu_state.update();
             }
+        }
+        Msg::Notification(nu) => {
+            notification::update(nu, &mut model.notification, &mut orders.proxy(Msg::Notification));
+        }
+        Msg::Tree(msg) => {
+            tree::update(&model.records, msg, &mut model.tree, &mut orders.proxy(Msg::Tree));
         }
     }
 }
@@ -391,13 +409,6 @@ pub fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg>) {
 // ------ ------
 //     View
 // ------ ------
-
-// Notes:
-// - \u{00A0} is the non-breaking space
-//   - https://codepoints.net/U+00A0
-//
-// - "▶\u{fe0e}" - \u{fe0e} is the variation selector, it prevents ▶ to change to emoji in some browsers
-//   - https://codepoints.net/U+FE0E
 
 pub fn view(model: &Model) -> impl View<Msg> {
     // @TODO: Setup `prerendered` properly once https://github.com/David-OConnor/seed/issues/223 is resolved
@@ -414,13 +425,7 @@ pub fn view(model: &Model) -> impl View<Msg> {
         // slider overlay
         if model.track_slider {
             div![
-                class![
-                    C.w_full,
-                    C.h_full,
-                    C.fixed,
-                    C.top_0,
-                    C.cursor_ew_resize,
-                ],
+                class![C.w_full, C.h_full, C.fixed, C.top_0, C.cursor_ew_resize,],
                 style! { St::ZIndex => 9999 },
                 mouse_ev(Ev::MouseMove, |ev| {
                     let target = ev.target().unwrap();
@@ -437,13 +442,7 @@ pub fn view(model: &Model) -> impl View<Msg> {
         page::partial::header::view(model).els(),
         // panel container
         div![
-            class![
-                C.flex,
-                C.flex_wrap,
-                C.flex_col,
-                C.lg__flex_row,
-                C.flex_grow
-            ],
+            class![C.flex, C.flex_wrap, C.flex_col, C.lg__flex_row, C.flex_grow],
             // side panel
             div![
                 class![
@@ -458,6 +457,7 @@ pub fn view(model: &Model) -> impl View<Msg> {
                     C.lg__h_main_content,
                 ],
                 style! { St::FlexBasis => percent(model.side_width_percentage) },
+                tree::view(&model.records, &model.tree).map_msg(Msg::Tree)
             ],
             // slider panel
             div![
@@ -501,34 +501,31 @@ pub fn view(model: &Model) -> impl View<Msg> {
                 ],
                 // main content
                 div![
-                    class![
-                        C.flex_grow,
-                        C.overflow_x_auto,
-                        C.overflow_y_auto,
-                        C.p_6
-                    ],
+                    class![C.flex_grow, C.overflow_x_auto, C.overflow_y_auto, C.p_6],
                     match &model.route {
-                        Route::About => page::about::view(&model).els(),
-                        Route::Activity => page::activity::view(&model).els(),
-                        Route::Dashboard => page::dashboard::view(&model).els(),
-                        Route::Filesystem =>
-                            page::filesystem::view(&model).els(),
-                        Route::FilesystemDetail =>
-                            page::filesystem_detail::view(&model).els(),
-                        Route::Home => page::home::view(&model).els(),
-                        Route::Jobstats => page::jobstats::view(&model).els(),
-                        Route::Login => page::login::view(&model).els(),
-                        Route::Logs => page::logs::view(&model).els(),
-                        Route::Mgt => page::mgt::view(&model).els(),
-                        Route::NotFound => page::not_found::view(&model).els(),
-                        Route::PowerControl =>
-                            page::power_control::view(&model).els(),
-                        Route::Server => page::server::view(&model).els(),
-                        Route::ServerDetail(id) =>
-                            page::server_detail::view(&model, &id).els(),
-                        Route::Target => page::target::view(&model).els(),
-                        Route::User => page::user::view(&model).els(),
-                        Route::Volume => page::volume::view(&model).els(),
+                        Route::About => page::about::view(model).els(),
+                        Route::Activity => page::activity::view(model).els(),
+                        Route::Dashboard => page::dashboard::view(model).els(),
+                        Route::Filesystem => page::filesystem::view(model).els(),
+                        Route::FilesystemDetail(id) => page::filesystem_detail::view(model, id).els(),
+                        Route::Home => page::home::view(model).els(),
+                        Route::Jobstats => page::jobstats::view(model).els(),
+                        Route::Login => page::login::view(model).els(),
+                        Route::Logs => page::logs::view(model).els(),
+                        Route::Mgt => page::mgt::view(model).els(),
+                        Route::NotFound => page::not_found::view(model).els(),
+                        Route::OstPool => page::ostpool::view(model).els(),
+                        Route::OstPoolDetail(id) => {
+                            page::ostpool_detail::view(model, id).els()
+                        }
+                        Route::PowerControl => page::power_control::view(model).els(),
+                        Route::Server => page::server::view(model).els(),
+                        Route::ServerDetail(id) => page::server_detail::view(model, id).els(),
+                        Route::Target => page::target::view(model).els(),
+                        Route::TargetDetail(id) => page::target_detail::view(model, id).els(),
+                        Route::User => page::user::view(model).els(),
+                        Route::Volume => page::volume::view(model).els(),
+                        Route::VolumeDetail(id) => page::volume_detail::view(model, id).els(),
                     },
                 ],
                 page::partial::footer::view().els(),

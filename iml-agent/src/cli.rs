@@ -2,12 +2,13 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
+use console::{style, Term};
 use iml_agent::action_plugins::stratagem::{
     action_purge, action_warning,
     server::{generate_cooked_config, trigger_scan, Counter, StratagemCounters},
 };
 use iml_agent::action_plugins::{
-    check_ha, check_kernel, check_stonith, kernel_module, ltuer, ostpool, package,
+    check_ha, check_kernel, check_stonith, kernel_module, lpurge, ltuer, ostpool, package,
 };
 use liblustreapi as llapi;
 use prettytable::{cell, row, Table};
@@ -96,6 +97,22 @@ pub enum PackageCommand {
     Version {
         #[structopt(name = "package_name")]
         package_name: String,
+    },
+}
+
+#[derive(Debug, StructOpt)]
+pub enum KernelModuleCommand {
+    #[structopt(name = "loaded")]
+    /// Is the module loaded?
+    Loaded {
+        #[structopt(name = "module")]
+        module: String,
+    },
+    #[structopt(name = "version")]
+    /// What is the version of the module?
+    Version {
+        #[structopt(name = "module")]
+        module: String,
     },
 }
 
@@ -242,7 +259,18 @@ pub enum App {
     },
 
     #[structopt(name = "kernel_module")]
-    KernelModule { module: String },
+    /// Get kernel module state and version
+    KernelModule {
+        #[structopt(subcommand)]
+        command: KernelModuleCommand,
+    },
+
+    #[structopt(name = "lpurge")]
+    /// Write lpurge configuration file
+    LPurge {
+        #[structopt(flatten)]
+        c: lpurge::Config,
+    },
 }
 
 fn input_to_iter(input: Option<String>, fidlist: Vec<String>) -> Box<dyn Iterator<Item = String>> {
@@ -374,19 +402,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 rd,
                 pd,
             } => {
-                let cyan = termion::color::Fg(termion::color::Cyan);
-                let green = termion::color::Fg(termion::color::Green);
-                let reset = termion::color::Fg(termion::color::Reset);
-
                 let s = format!(
-                    "{}Scanning{} {}{}{}...",
-                    cyan,
-                    reset,
-                    termion::style::Bold,
-                    device_path,
-                    reset,
+                    "{} {}...",
+                    style("Scanning").cyan(),
+                    style(&device_path).bold(),
                 );
-                let s_len = s.len();
 
                 let sp = Spinner::new(Spinners::Dots9, s);
 
@@ -395,22 +415,23 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 let result = trigger_scan(data).await;
 
                 sp.stop();
-                println!("{}", termion::clear::CurrentLine);
-                print!("{}", termion::cursor::Left(s_len as u16));
+
+                if let Err(e) = Term::stdout().clear_line() {
+                    tracing::debug!("Could not clear current line {}", e);
+                };
 
                 match result {
                     Ok((results_dir, output, _)) => {
                         println!(
-                            "{}✔ Scan finished{}. Results located in {}",
-                            green, reset, results_dir
+                            "{}. Results located in {}",
+                            style("✔ Scan finished").green(),
+                            results_dir
                         );
 
                         for x in output.group_counters {
                             println!(
-                                "\n\n\n{}{}Group:{} {}\n",
-                                cyan,
-                                termion::style::Bold,
-                                reset,
+                                "\n\n\n{} {}\n",
+                                style("Group:").cyan().bold(),
                                 humanize(&x.name)
                             );
 
@@ -502,15 +523,25 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 exit(exitcode::SOFTWARE);
             }
         }
-        App::KernelModule { module } => match kernel_module::loaded(module).await {
-            Ok(b) => {
-                println!("{}", if b { "Loaded" } else { "Not Loaded" });
-            }
-            Err(e) => {
+        App::KernelModule { command } => {
+            if let Err(e) = match command {
+                KernelModuleCommand::Loaded { module } => kernel_module::loaded(module)
+                    .await
+                    .map(|r| println!("{}", if r { "Loaded" } else { "Not Loaded" })),
+                KernelModuleCommand::Version { module } => kernel_module::version(module)
+                    .await
+                    .map(|r| println!("{}", r)),
+            } {
                 eprintln!("{}", e);
                 exit(exitcode::SOFTWARE);
             }
-        },
+        }
+        App::LPurge { c } => {
+            if let Err(e) = lpurge::create_lpurge_conf(c).await {
+                eprintln!("{}", e);
+                exit(exitcode::SOFTWARE);
+            }
+        }
     };
 
     Ok(())

@@ -3,7 +3,12 @@
 // license that can be found in the LICENSE file.
 
 use serde_json;
-use std::{collections::HashMap, fmt};
+use std::{
+    cmp::{Ord, Ordering},
+    collections::{BTreeMap, BTreeSet, HashMap},
+    convert::TryFrom,
+    fmt,
+};
 
 #[derive(Eq, PartialEq, Hash, Debug, Clone, serde::Serialize, serde::Deserialize)]
 #[serde(transparent)]
@@ -231,9 +236,11 @@ impl Action {
     }
 }
 
-impl From<Action> for serde_json::Value {
-    fn from(action: Action) -> Self {
-        serde_json::to_value(action).unwrap()
+impl TryFrom<Action> for serde_json::Value {
+    type Error = serde_json::Error;
+
+    fn try_from(action: Action) -> Result<serde_json::Value, serde_json::Error> {
+        serde_json::to_value(action)
     }
 }
 
@@ -436,6 +443,18 @@ impl Label for Host {
 impl Label for &Host {
     fn label(&self) -> &str {
         &self.label
+    }
+}
+
+impl db::Id for Host {
+    fn id(&self) -> u32 {
+        self.id
+    }
+}
+
+impl db::Id for &Host {
+    fn id(&self) -> u32 {
+        self.id
     }
 }
 
@@ -685,6 +704,24 @@ impl Label for Volume {
     }
 }
 
+impl Label for &Volume {
+    fn label(&self) -> &str {
+        &self.label
+    }
+}
+
+impl db::Id for Volume {
+    fn id(&self) -> u32 {
+        self.id
+    }
+}
+
+impl db::Id for &Volume {
+    fn id(&self) -> u32 {
+        self.id
+    }
+}
+
 impl EndpointName for Volume {
     fn endpoint_name() -> &'static str {
         "volume"
@@ -727,6 +764,14 @@ pub enum VolumeOrResourceUri {
     Volume(Volume),
 }
 
+#[derive(serde::Deserialize, serde::Serialize, Clone, Copy, Debug, Eq, PartialEq)]
+#[serde(rename_all = "UPPERCASE")]
+pub enum TargetKind {
+    Mgt,
+    Mdt,
+    Ost,
+}
+
 /// A Target record from /api/target/
 #[derive(serde::Deserialize, serde::Serialize, Clone, Debug)]
 pub struct Target<T> {
@@ -746,7 +791,7 @@ pub struct Target<T> {
     pub index: Option<u32>,
     pub inode_count: Option<u64>,
     pub inode_size: Option<u32>,
-    pub kind: String,
+    pub kind: TargetKind,
     pub label: String,
     pub name: String,
     pub primary_server: String,
@@ -859,6 +904,18 @@ impl Label for Filesystem {
 impl Label for &Filesystem {
     fn label(&self) -> &str {
         &self.label
+    }
+}
+
+impl db::Id for Filesystem {
+    fn id(&self) -> u32 {
+        self.id
+    }
+}
+
+impl db::Id for &Filesystem {
+    fn id(&self) -> u32 {
+        self.id
     }
 }
 
@@ -1110,6 +1167,12 @@ pub mod db {
         }
     }
 
+    impl Id for &VolumeNodeRecord {
+        fn id(&self) -> u32 {
+            self.id
+        }
+    }
+
     impl NotDeleted for VolumeNodeRecord {
         fn not_deleted(&self) -> bool {
             not_deleted(self.not_deleted)
@@ -1258,6 +1321,12 @@ pub mod db {
         }
     }
 
+    impl Id for &OstPoolRecord {
+        fn id(&self) -> u32 {
+            self.id
+        }
+    }
+
     impl NotDeleted for OstPoolRecord {
         fn not_deleted(&self) -> bool {
             not_deleted(self.not_deleted)
@@ -1329,6 +1398,62 @@ pub mod db {
     impl Name for OstPoolOstsRecord {
         fn table_name() -> TableName<'static> {
             OSTPOOL_OSTS_TABLE_NAME
+        }
+    }
+
+    /// Record from the `chroma_core_managedost` table
+    #[derive(serde::Deserialize, Debug)]
+    pub struct ManagedOstRecord {
+        managedtarget_ptr_id: u32,
+        index: u32,
+        filesystem_id: u32,
+    }
+
+    impl Id for ManagedOstRecord {
+        fn id(&self) -> u32 {
+            self.managedtarget_ptr_id
+        }
+    }
+
+    impl NotDeleted for ManagedOstRecord {
+        fn not_deleted(&self) -> bool {
+            true
+        }
+    }
+
+    pub const MANAGED_OST_TABLE_NAME: TableName = TableName("chroma_core_managedost");
+
+    impl Name for ManagedOstRecord {
+        fn table_name() -> TableName<'static> {
+            MANAGED_OST_TABLE_NAME
+        }
+    }
+
+    /// Record from the `chroma_core_managedmdt` table
+    #[derive(serde::Deserialize, Debug)]
+    pub struct ManagedMdtRecord {
+        managedtarget_ptr_id: u32,
+        index: u32,
+        filesystem_id: u32,
+    }
+
+    impl Id for ManagedMdtRecord {
+        fn id(&self) -> u32 {
+            self.managedtarget_ptr_id
+        }
+    }
+
+    impl NotDeleted for ManagedMdtRecord {
+        fn not_deleted(&self) -> bool {
+            true
+        }
+    }
+
+    pub const MANAGED_MDT_TABLE_NAME: TableName = TableName("chroma_core_managedmdt");
+
+    impl Name for ManagedMdtRecord {
+        fn table_name() -> TableName<'static> {
+            MANAGED_MDT_TABLE_NAME
         }
     }
 
@@ -1936,12 +2061,36 @@ pub struct ComponentState<T: Default> {
 
 /// An OST Pool record from `/api/ostpool/`
 #[derive(Debug, Default, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub struct OstPoolApi {
+    pub id: u32,
+    pub resource_uri: String,
+    #[serde(flatten)]
+    pub ost: OstPool,
+}
+
+impl EndpointName for OstPoolApi {
+    fn endpoint_name() -> &'static str {
+        "ostpool"
+    }
+}
+
+impl FlatQuery for OstPoolApi {}
+
+impl std::fmt::Display for OstPoolApi {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "[#{}] {}", self.id, self.ost)
+    }
+}
+
+/// Type Sent between ostpool agent daemon and service
+/// FS Name -> Set of OstPools
+pub type FsPoolMap = BTreeMap<String, BTreeSet<OstPool>>;
+
+#[derive(Debug, Default, Clone, Eq, serde::Serialize, serde::Deserialize)]
 pub struct OstPool {
     pub name: String,
     pub filesystem: String,
     pub osts: Vec<String>,
-    pub resource_uri: String,
-    pub id: u32,
 }
 
 impl std::fmt::Display for OstPool {
@@ -1956,13 +2105,27 @@ impl std::fmt::Display for OstPool {
     }
 }
 
-impl EndpointName for OstPool {
-    fn endpoint_name() -> &'static str {
-        "ostpool"
+impl Ord for OstPool {
+    fn cmp(&self, other: &Self) -> Ordering {
+        let x = self.filesystem.cmp(&other.filesystem);
+        if x != Ordering::Equal {
+            return x;
+        }
+        self.name.cmp(&other.name)
     }
 }
 
-impl FlatQuery for OstPool {}
+impl PartialOrd for OstPool {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl PartialEq for OstPool {
+    fn eq(&self, other: &Self) -> bool {
+        self.filesystem == other.filesystem && self.name == other.name
+    }
+}
 
 pub mod warp_drive {
     use crate::{
@@ -1972,7 +2135,8 @@ pub mod warp_drive {
         },
         Alert, Filesystem, Host, LockChange, Target, TargetConfParam, Volume,
     };
-    use std::collections::{HashMap, HashSet};
+    use im::{HashMap, HashSet};
+    use std::ops::Deref;
 
     /// The current state of locks based on data from the locks queue
     pub type Locks = HashMap<String, HashSet<LockChange>>;
@@ -1996,17 +2160,17 @@ pub mod warp_drive {
         /// Removes the record from the cache
         pub fn remove_record(&mut self, x: &RecordId) -> bool {
             match x {
-                RecordId::ActiveAlert(id) => self.active_alert.remove(&id).is_some(),
-                RecordId::Filesystem(id) => self.filesystem.remove(&id).is_some(),
-                RecordId::Host(id) => self.host.remove(&id).is_some(),
-                RecordId::LnetConfiguration(id) => self.lnet_configuration.remove(&id).is_some(),
-                RecordId::ManagedTargetMount(id) => self.managed_target_mount.remove(&id).is_some(),
-                RecordId::OstPool(id) => self.ost_pool.remove(&id).is_some(),
-                RecordId::OstPoolOsts(id) => self.ost_pool_osts.remove(&id).is_some(),
-                RecordId::StratagemConfig(id) => self.stratagem_config.remove(&id).is_some(),
-                RecordId::Target(id) => self.target.remove(&id).is_some(),
-                RecordId::Volume(id) => self.volume.remove(&id).is_some(),
-                RecordId::VolumeNode(id) => self.volume_node.remove(&id).is_some(),
+                RecordId::ActiveAlert(id) => self.active_alert.remove(id).is_some(),
+                RecordId::Filesystem(id) => self.filesystem.remove(id).is_some(),
+                RecordId::Host(id) => self.host.remove(id).is_some(),
+                RecordId::LnetConfiguration(id) => self.lnet_configuration.remove(id).is_some(),
+                RecordId::ManagedTargetMount(id) => self.managed_target_mount.remove(id).is_some(),
+                RecordId::OstPool(id) => self.ost_pool.remove(id).is_some(),
+                RecordId::OstPoolOsts(id) => self.ost_pool_osts.remove(id).is_some(),
+                RecordId::StratagemConfig(id) => self.stratagem_config.remove(id).is_some(),
+                RecordId::Target(id) => self.target.remove(id).is_some(),
+                RecordId::Volume(id) => self.volume.remove(id).is_some(),
+                RecordId::VolumeNode(id) => self.volume_node.remove(id).is_some(),
             }
         }
         /// Inserts the record into the cache
@@ -2065,7 +2229,7 @@ pub mod warp_drive {
         LnetConfiguration(LnetConfigurationRecord),
     }
 
-    #[derive(Debug, serde::Serialize, serde::Deserialize, Clone)]
+    #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, serde::Deserialize, serde::Serialize)]
     #[serde(tag = "tag", content = "payload")]
     pub enum RecordId {
         ActiveAlert(u32),
@@ -2079,6 +2243,26 @@ pub mod warp_drive {
         Volume(u32),
         VolumeNode(u32),
         LnetConfiguration(u32),
+    }
+
+    impl Deref for RecordId {
+        type Target = u32;
+
+        fn deref(&self) -> &u32 {
+            match self {
+                Self::ActiveAlert(x)
+                | Self::Filesystem(x)
+                | Self::Host(x)
+                | Self::ManagedTargetMount(x)
+                | Self::OstPool(x)
+                | Self::OstPoolOsts(x)
+                | Self::StratagemConfig(x)
+                | Self::Target(x)
+                | Self::Volume(x)
+                | Self::VolumeNode(x)
+                | Self::LnetConfiguration(x) => x,
+            }
+        }
     }
 
     #[derive(Debug, serde::Serialize, serde::Deserialize, Clone)]

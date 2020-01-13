@@ -13,14 +13,17 @@ members = [
     'iml-mailbox',
     'iml-manager-cli',
     'iml-manager-client',
+    'iml-orm',
     'iml-fs',
     'iml-util',
     'iml-postgres',
     'iml-services/iml-service-queue',
     'iml-services/iml-action-runner',
+    'iml-services/iml-ostpool',
     'iml-services/iml-stratagem',
     'iml-services/iml-devices',
     'number-formatter',
+    'version-utils',
 ]
 
 exclude = [

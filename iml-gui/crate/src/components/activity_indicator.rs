@@ -1,32 +1,28 @@
 use crate::{components::font_awesome, generated::css_classes::C};
+use im::HashMap;
 use iml_wire_types::{Alert, AlertSeverity};
 use seed::{prelude::*, *};
-use std::{
-    cmp::max,
-    collections::{HashMap, HashSet},
-};
+use std::cmp::max;
 
-pub fn update_activity_health(
-    active_alert: &HashMap<u32, Alert>,
-) -> ActivityHealth {
-    active_alert.values().filter(|x| x.severity > AlertSeverity::INFO).fold(
-        ActivityHealth::new(),
-        |mut acc, x| {
+pub fn update_activity_health(active_alert: &HashMap<u32, Alert>) -> ActivityHealth {
+    active_alert
+        .values()
+        .filter(|x| x.severity > AlertSeverity::INFO)
+        .fold(ActivityHealth::default(), |mut acc, x| {
             acc.health = max(acc.health, x.severity);
             acc.count += 1;
             acc
-        },
-    )
+        })
 }
 
-#[derive(Debug)]
+#[derive(Debug, Copy, Clone, PartialOrd, PartialEq)]
 pub struct ActivityHealth {
-    pub count: usize,
     pub health: AlertSeverity,
+    pub count: usize,
 }
 
-impl ActivityHealth {
-    pub fn new() -> Self {
+impl Default for ActivityHealth {
+    fn default() -> Self {
         ActivityHealth {
             health: AlertSeverity::INFO,
             count: 0,

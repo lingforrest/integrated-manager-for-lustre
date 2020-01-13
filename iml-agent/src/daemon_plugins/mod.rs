@@ -12,6 +12,7 @@
 pub mod action_runner;
 pub mod daemon_plugin;
 pub mod devices;
+pub mod ostpool;
 pub mod stratagem;
 
 pub use daemon_plugin::{

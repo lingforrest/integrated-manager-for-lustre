@@ -4,7 +4,7 @@
 
 use crate::{
     action_plugins::{
-        check_ha, check_kernel, check_stonith, kernel_module, lctl, ltuer,
+        check_ha, check_kernel, check_stonith, kernel_module, lctl, lpurge, ltuer,
         ntp::action_configure,
         ostpool, package,
         stratagem::{action_purge, action_warning, server},
@@ -18,7 +18,7 @@ use tracing::info;
 /// The registry of available actions to the `AgentDaemon`.
 /// Add new Actions to the fn body as they are created.
 pub fn create_registry() -> action_plugins::Actions {
-    let map = action_plugins::Actions::new()
+    let map = action_plugins::Actions::default()
         .add_plugin("start_unit", systemd::start_unit)
         .add_plugin("stop_unit", systemd::stop_unit)
         .add_plugin("enable_unit", systemd::enable_unit)
@@ -26,6 +26,7 @@ pub fn create_registry() -> action_plugins::Actions {
         .add_plugin("restart_unit", systemd::restart_unit)
         .add_plugin("get_unit_run_state", systemd::get_run_state)
         .add_plugin("kernel_module_loaded", kernel_module::loaded)
+        .add_plugin("kernel_module_version", kernel_module::version)
         .add_plugin("package_installed", package::installed)
         .add_plugin("package_version", package::version)
         .add_plugin("start_scan_stratagem", server::trigger_scan)
@@ -41,6 +42,7 @@ pub fn create_registry() -> action_plugins::Actions {
         .add_plugin("ostpool_destroy", ostpool::action_pool_destroy)
         .add_plugin("ostpool_add", ostpool::action_pool_add)
         .add_plugin("ostpool_remove", ostpool::action_pool_remove)
+        .add_plugin("create_lpurge_conf", lpurge::create_lpurge_conf)
         .add_plugin(
             "configure_ntp",
             action_configure::update_and_write_new_config,
