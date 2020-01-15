@@ -963,6 +963,7 @@ pub enum AlertType {
     LNetOfflineAlert,
     LNetNidsChangedAlert,
     StratagemUnconfiguredAlert,
+    NtpOutOfSyncAlert,
 }
 
 #[derive(
@@ -1988,6 +1989,36 @@ pub mod db {
                 fs_uuid: row.get::<_, Option<String>>("fs_uuid"),
             }
         }
+    }
+}
+
+pub mod ntp {
+
+    #[derive(Debug, PartialEq, serde::Serialize, serde::Deserialize)]
+    pub enum TimeSync {
+        Synced,
+        Unsynced,
+    }
+
+    #[derive(Debug, serde::Serialize, serde::Deserialize)]
+    pub struct TimeOffset(String);
+
+    impl From<String> for TimeOffset {
+        fn from(s: String) -> Self {
+            TimeOffset(s)
+        }
+    }
+
+    impl PartialEq for TimeOffset {
+        fn eq(&self, other: &Self) -> bool {
+            self.0 == other.0
+        }
+    }
+
+    #[derive(Debug, serde::Serialize, serde::Deserialize)]
+    pub struct TimeStatus {
+        pub synced: TimeSync,
+        pub offset: Option<TimeOffset>,
     }
 }
 

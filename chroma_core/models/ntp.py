@@ -5,9 +5,13 @@
 
 
 import socket
+import logging
 
 from django.db import models
 from django.db.models import CASCADE
+
+from chroma_core.models import AlertEvent
+from chroma_core.models import AlertStateBase
 from chroma_core.models import DeletableStatefulObject
 from chroma_core.models import StateChangeJob
 from chroma_core.models import Job
@@ -152,3 +156,27 @@ class UnconfigureNTPJob(StateChangeJob):
         fqdn = self.ntp_configuration.host.fqdn
 
         return [(UnconfigureNTPStep, {"fqdn": fqdn}), (RestartNtpStep, {"fqdn": fqdn})]
+
+
+class NtpOutOfSyncAlert(AlertStateBase):
+    # When a server is out of sync from the IML node this can cause a lot of problems
+    # and is thus a high severity error.
+
+    default_severity = logging.ERROR
+
+    def get_message(self, host):
+        "NTP out of sync on server '{}'".format(host)
+
+    def alert_message(self):
+        return self.get_message(self.alert_item.fqdn)
+
+    class Meta:
+        app_label = "chroma_core"
+        proxy = True
+
+    @property
+    def affected_objects(self):
+        """
+        :return: A list of objects that are affected by this alert
+        """
+        return [self.alert_item]
