@@ -131,9 +131,7 @@ impl DaemonPlugin for Devices {
 
 #[cfg(test)]
 mod tests {
-    use crate::daemon_plugins::{
-        devices::flat_devices::{process_tree, DeviceId, FlatDevices},
-    };
+    use crate::daemon_plugins::devices::flat_devices::{process_tree, DeviceId, FlatDevices};
     use insta::assert_debug_snapshot;
     use serde_json;
     use std::fs;
