@@ -1992,33 +1992,29 @@ pub mod db {
     }
 }
 
-pub mod ntp {
+pub mod time {
+    use super::RunState;
 
-    #[derive(Debug, PartialEq, serde::Serialize, serde::Deserialize)]
-    pub enum TimeSync {
+    #[derive(Clone, Copy, Debug, PartialEq, serde::Serialize, serde::Deserialize)]
+    pub enum Synced {
         Synced,
         Unsynced,
     }
 
     #[derive(Debug, serde::Serialize, serde::Deserialize)]
-    pub struct TimeOffset(String);
-
-    impl From<String> for TimeOffset {
-        fn from(s: String) -> Self {
-            TimeOffset(s)
-        }
+    pub struct State {
+        pub iml_configured: bool,
+        pub ntp: (RunState, Option<Synced>, Option<Offset>),
+        pub chrony: (RunState, Option<Synced>, Option<Offset>),
     }
 
-    impl PartialEq for TimeOffset {
-        fn eq(&self, other: &Self) -> bool {
-            self.0 == other.0
-        }
-    }
+    #[derive(Debug, serde::Serialize, serde::Deserialize, PartialEq)]
+    pub struct Offset(String);
 
-    #[derive(Debug, serde::Serialize, serde::Deserialize)]
-    pub struct TimeStatus {
-        pub synced: TimeSync,
-        pub offset: Option<TimeOffset>,
+    impl<T: ToString> From<T> for Offset {
+        fn from(s: T) -> Self {
+            Offset(s.to_string())
+        }
     }
 }
 

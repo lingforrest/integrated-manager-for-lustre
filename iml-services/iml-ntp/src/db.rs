@@ -2,81 +2,91 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-use iml_postgres::Client;
-use iml_wire_types::db::{AlertStateRecord, ManagedHostRecord, Name};
+use diesel::prelude::*;
+use tokio_diesel::{AsyncRunQueryDsl, OptionalExtension};
 
 /// This async function will retrieve the managed host id for a given fqdn. A future
 /// containing the managed host id is returned.
 pub async fn get_managed_host_items(
-    fqdn: &str,
-    client: &mut Client,
-) -> Result<Option<(i32, i32, String)>, iml_postgres::Error> {
-    iml_postgres::select(
-        client,
-        &format!(
-            "SELECT id, content_type_id, state FROM {} WHERE fqdn=$1 AND not_deleted=True;",
-            ManagedHostRecord::table_name()
-        ),
-        &[&fqdn],
-    )
-    .await
-    .map(|row| {
-        row.map(|r| {
-            (
-                r.get::<_, i32>("content_type_id"),
-                r.get::<_, i32>("id"),
-                r.get::<_, String>("state"),
-            )
-        })
-    })
+    x: impl ToString,
+    pool: &iml_orm::DbPool,
+) -> Result<Option<(i32, i32, String)>, tokio_diesel::AsyncError> {
+    use iml_orm::schema::chroma_core_managedhost::dsl::*;
+
+    let p = fqdn.eq(x.to_string()).and(not_deleted.eq(true));
+
+    let x = chroma_core_managedhost
+        .select((id, content_type_id, state))
+        .filter(p)
+        .first_async(pool)
+        .await
+        .optional()?;
+
+    Ok(x.and_then(|(x, y, z): (i32, Option<i32>, String)| Some((x, y?, z))))
 }
 
 pub async fn get_active_alert_for_fqdn(
-    fqdn: &str,
-    client: &mut Client,
-) -> Result<Option<i32>, iml_postgres::Error> {
-    iml_postgres::select(
-        client,
-        &format!(
-            r#"SELECT S.id FROM {} AS S INNER JOIN {} AS MH 
-ON S.alert_item_id = MH.id WHERE S.record_type='NtpOutOfSyncAlert' AND 
-S.active = True AND MH.fqdn=$1 AND MH.not_deleted = True;"#,
-            AlertStateRecord::table_name(),
-            ManagedHostRecord::table_name(),
-        ),
-        &[&fqdn],
-    )
-    .await
-    .map(|row| row.map(|r| r.get::<_, i32>(0)))
+    fqdn: impl ToString,
+    record_type: impl ToString,
+    pool: &iml_orm::DbPool,
+) -> Result<Option<i32>, tokio_diesel::AsyncError> {
+    use iml_orm::schema::{chroma_core_alertstate as a, chroma_core_managedhost as mh};
+
+    a::table
+        .select(a::dsl::id)
+        .inner_join(mh::table.on(a::dsl::alert_item_id.eq(mh::dsl::id.nullable())))
+        .filter(
+            a::dsl::record_type
+                .eq(record_type.to_string())
+                .and(a::dsl::active.eq(true)),
+        )
+        .filter(
+            mh::dsl::fqdn
+                .eq(fqdn.to_string())
+                .and(mh::dsl::not_deleted.eq(true)),
+        )
+        .first_async(pool)
+        .await
+        .optional()
 }
 
-pub async fn set_alert_inactive(id: i32, client: &mut Client) -> Result<u64, iml_postgres::Error> {
-    iml_postgres::update(
-        client,
-        &format!(
-            r#"UPDATE {} SET active=Null, "end"=Now() WHERE id=$1;"#,
-            AlertStateRecord::table_name()
-        ),
-        &[&id],
-    )
-    .await
+pub async fn lower_alert(
+    alert_id: i32,
+    pool: &iml_orm::DbPool,
+) -> Result<usize, tokio_diesel::AsyncError> {
+    use iml_orm::schema::chroma_core_alertstate::dsl::*;
+
+    let row = chroma_core_alertstate.find(alert_id);
+
+    diesel::update(row)
+        .set((active.eq(Option::<bool>::None), end.eq(diesel::dsl::now)))
+        .execute_async(pool)
+        .await
 }
 
-/// This async function will insert a new entry into the chroma_core_alertstate table. This will effectively raise an
+/// This async function will insert a new entry into the chroma_core_alertstate table. This will raise an
 /// NtpOutOfSyncAlert alert for a given fqdn.
 pub async fn add_alert(
     fqdn: &str,
-    alert_item_type_id: i32,
-    alert_item_id: i32,
-    client: &mut Client,
-) -> Result<u64, iml_postgres::Error> {
-    iml_postgres::update(
-        client,
-        &format!(r#"INSERT INTO {}
-                (record_type, variant, alert_item_id, alert_type, begin, message, active, dismissed, severity, alert_item_type_id) values
-                ($1, $2, $3, $4, Now(), $5, $6, $7, $8, $9);"#,
-                AlertStateRecord::table_name()
-            ),
-        &[&"NtpOutOfSyncAlert", &"{}", &alert_item_id, &"NtpOutOfSyncAlert", &format!("Ntp is out of sync on server {}", fqdn), &true, &false, &40, &alert_item_type_id]
-    ).await
+    item_type_id: i32,
+    item_id: i32,
+    pool: &iml_orm::DbPool,
+) -> Result<usize, tokio_diesel::AsyncError> {
+    use iml_orm::schema::chroma_core_alertstate::dsl::*;
+
+    diesel::insert_into(chroma_core_alertstate)
+        .values((
+            record_type.eq("NtpOutOfSyncAlert"),
+            variant.eq("{}"),
+            alert_item_id.eq(item_id),
+            alert_type.eq("NtpOutOfSyncAlert"),
+            begin.eq(diesel::dsl::now),
+            message.eq(format!("Ntp is out of sync on server {}", fqdn)),
+            active.eq(true),
+            dismissed.eq(false),
+            severity.eq(40),
+            alert_item_type_id.eq(item_type_id),
+        ))
+        .execute_async(pool)
+        .await
 }

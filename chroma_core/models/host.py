@@ -32,6 +32,8 @@ from chroma_core.models import CorosyncConfiguration
 from chroma_core.models import Corosync2Configuration
 from chroma_core.models import NTPConfiguration
 from chroma_core.models import NtpOutOfSyncAlert
+from chroma_core.models import ChronyOutOfSyncAlert
+from chroma_core.models import MultipleTimeSyncAlert
 from chroma_core.models import Job
 from chroma_core.models import AdvertisedJob
 from chroma_core.models import StateLock
@@ -1140,6 +1142,8 @@ class DeleteHostStep(Step):
 
         # Lower any ntp alerts for the host
         NtpOutOfSyncAlert.notify(host, False)
+        ChronyOutOfSyncAlert.notify(host, False)
+        MultipleTimeSyncAlert.notify(host, False)
 
         from chroma_core.models import StorageResourceRecord
         from chroma_core.services.plugin_runner.agent_daemon_interface import AgentDaemonRpcInterface

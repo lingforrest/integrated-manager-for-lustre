@@ -180,3 +180,48 @@ class NtpOutOfSyncAlert(AlertStateBase):
         :return: A list of objects that are affected by this alert
         """
         return [self.alert_item]
+
+
+class ChronyOutOfSyncAlert(AlertStateBase):
+    # When a server is out of sync from the IML node this can cause a lot of problems
+    # and is thus a high severity error.
+
+    default_severity = logging.ERROR
+
+    def get_message(self, host):
+        "Chrony out of sync on server '{}'".format(host)
+
+    def alert_message(self):
+        return self.get_message(self.alert_item.fqdn)
+
+    class Meta:
+        app_label = "chroma_core"
+        proxy = True
+
+    @property
+    def affected_objects(self):
+        """
+        :return: A list of objects that are affected by this alert
+        """
+        return [self.alert_item]
+
+
+class MultipleTimeSyncAlert(AlertStateBase):
+    default_severity = logging.WARNING
+
+    def get_message(self, host):
+        "Multiple running time sync clients found on {}".format(host)
+
+    def alert_message(self):
+        return self.get_message(self.alert_item.fqdn)
+
+    class Meta:
+        app_label = "chroma_core"
+        proxy = True
+
+    @property
+    def affected_objects(self):
+        """
+        :return: A list of objects that are affected by this alert
+        """
+        return [self.alert_item]
