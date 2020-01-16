@@ -17,8 +17,8 @@ use std::pin::Pin;
 static NTP_CONFIG_FILE: &'static str = "/etc/ntp.conf";
 
 async fn get_time_sync_services() -> Result<(RunState, RunState), ImlAgentError> {
-    let ntpd = systemd::get_run_state("ntpd".into());
-    let chronyd = systemd::get_run_state("chronyd".into());
+    let ntpd = systemd::get_run_state("ntpd.service".into());
+    let chronyd = systemd::get_run_state("chronyd.service".into());
 
     future::try_join(ntpd, chronyd).await
 }
