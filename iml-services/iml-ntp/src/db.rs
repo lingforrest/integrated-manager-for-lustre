@@ -33,18 +33,14 @@ pub async fn get_active_alert_for_fqdn(
     use iml_orm::schema::{chroma_core_alertstate as a, chroma_core_managedhost as mh};
 
     a::table
-        .select(a::dsl::id)
-        .inner_join(mh::table.on(a::dsl::alert_item_id.eq(mh::dsl::id.nullable())))
+        .select(a::id)
+        .inner_join(mh::table.on(a::alert_item_id.eq(mh::id.nullable())))
         .filter(
-            a::dsl::record_type
+            a::record_type
                 .eq(record_type.to_string())
-                .and(a::dsl::active.eq(true)),
+                .and(a::active.eq(true)),
         )
-        .filter(
-            mh::dsl::fqdn
-                .eq(fqdn.to_string())
-                .and(mh::dsl::not_deleted.eq(true)),
-        )
+        .filter(mh::fqdn.eq(fqdn.to_string()).and(mh::not_deleted.eq(true)))
         .first_async(pool)
         .await
         .optional()

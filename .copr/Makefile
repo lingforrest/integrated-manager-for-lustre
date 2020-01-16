@@ -34,6 +34,7 @@ substs: $(SUBSTS)
 	chmod +x $(SUBSTS_SHELL)
 
 srpm:
+	yum install -y postgresql-devel
 	mkdir -p ${TMPDIR}/_topdir/{SOURCES,SPECS}
 	mkdir -p ${TMPDIR}/release/rust-iml
 	cargo build --release
