@@ -186,22 +186,17 @@ impl Session {
     }
     pub fn start(
         &mut self,
-    ) -> Pin<Box<dyn Future<Output = Result<Option<(SessionInfo, OutputValue)>>>>> {
+    ) -> Pin<Box<dyn Future<Output = Result<Option<(SessionInfo, OutputValue)>>> + Send>> {
         let info = Arc::clone(&self.info);
 
-        // self.plugin
-        //     .start_session()
-        //     .map_ok(move |x| x.map(|y| addon_info(&mut info.lock(), y)))
-        let session = self.plugin.start_session();
-        match session {
-            Ok(x) => match x {
-                Some(y) => async move { Ok(Some(addon_info(&mut *info.lock().await, y))) }.boxed(),
-                None => async move { Ok(None) }.boxed(),
-            },
-            Err(e) => async move { Err(e) }.boxed(),
-        }
+        self.plugin
+            .start_session()
+            .map_ok(move |x| x.map(|y| async move { addon_info(&mut *(info.lock().await), y) }))
+            .boxed()
     }
-    pub fn poll(&self) -> impl Future<Output = Result<Option<(SessionInfo, OutputValue)>>> {
+    pub fn poll(
+        &self,
+    ) -> Pin<Box<dyn Future<Output = Result<Option<(SessionInfo, OutputValue)>>> + Send>> {
         let info = Arc::clone(&self.info);
 
         self.plugin
@@ -211,7 +206,7 @@ impl Session {
     pub fn message(
         &self,
         body: serde_json::Value,
-    ) -> impl Future<Output = Result<(SessionInfo, AgentResult)>> {
+    ) -> Pin<Box<dyn Future<Output = Result<(SessionInfo, AgentResult)>> + Send>> {
         let info = Arc::clone(&self.info);
 
         self.plugin
