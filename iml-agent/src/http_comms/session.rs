@@ -6,14 +6,16 @@ use crate::{
     agent_error::Result,
     daemon_plugins::{DaemonBox, OutputValue},
 };
-use futures::{Future, TryFutureExt};
+use futures::{Future, FutureExt, TryFutureExt};
 use iml_wire_types::{AgentResult, Id, PluginName, Seq};
-use parking_lot::{Mutex, RwLock, RwLockReadGuard, RwLockWriteGuard};
+use parking_lot::{RwLock, RwLockReadGuard, RwLockWriteGuard};
 use std::{
     collections::HashMap,
+    pin::Pin,
     sync::Arc,
     time::{Duration, Instant},
 };
+use tokio::sync::Mutex;
 use tracing::{info, warn};
 
 /// Takes a `Duration` and figures out the next duration
@@ -182,12 +184,22 @@ impl Session {
             plugin,
         }
     }
-    pub fn start(&mut self) -> impl Future<Output = Result<Option<(SessionInfo, OutputValue)>>> {
+    pub fn start(
+        &mut self,
+    ) -> Pin<Box<dyn Future<Output = Result<Option<(SessionInfo, OutputValue)>>>>> {
         let info = Arc::clone(&self.info);
 
-        self.plugin
-            .start_session()
-            .map_ok(move |x| x.map(|y| addon_info(&mut info.lock(), y)))
+        // self.plugin
+        //     .start_session()
+        //     .map_ok(move |x| x.map(|y| addon_info(&mut info.lock(), y)))
+        let session = self.plugin.start_session();
+        match session {
+            Ok(x) => match x {
+                Some(y) => async move { Ok(Some(addon_info(&mut *info.lock().await, y))) }.boxed(),
+                None => async move { Ok(None) }.boxed(),
+            },
+            Err(e) => async move { Err(e) }.boxed(),
+        }
     }
     pub fn poll(&self) -> impl Future<Output = Result<Option<(SessionInfo, OutputValue)>>> {
         let info = Arc::clone(&self.info);
