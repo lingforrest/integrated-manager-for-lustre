@@ -245,7 +245,9 @@ pub fn process_tree<'a>(
             }
             Err(e) => tracing::warn!("discarding Partition {:?} due to error {}", x, e),
         },
-        devices::Device::MdRaid(_) => {}
+        devices::Device::MdRaid(x) => {
+            tracing::error!("discarding MdRaid {:?} because it's not implemented", x)
+        }
         devices::Device::Mpath(x) => match FlatDevice::try_from(x) {
             Ok(device) => {
                 let id = device.id.clone();
