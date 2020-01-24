@@ -387,8 +387,6 @@ pub async fn update_virtual_devices<'a>(
         },
     );
 
-    // zpools.iter().fold(HashMap::new(), |hm, pool| hm);
-
     for pool in zpools {
         // Create a map of hostid to device.
 
@@ -397,6 +395,13 @@ pub async fn update_virtual_devices<'a>(
                 .filter(|(_, v)| &v.fqdn != fqdn)
                 .map(|(_, v)| v)
                 .collect();
+
+            for other_host in other_hosts {
+                tracing::info!(
+                    "{:#?}",
+                    insert_device_host(transaction, &other_host.fqdn, other_host).await
+                );
+            }
         }
     }
 
