@@ -397,9 +397,19 @@ pub async fn update_virtual_devices<'a>(
                 .collect();
 
             for other_host in other_hosts {
+                let other_device_host = DeviceHost {
+                    device_id: id.clone(),
+                    fqdn: other_host.fqdn.clone(),
+                    local: true,
+                    paths: Paths(BTreeSet::new()),
+                    mount_path: MountPath(None),
+                    fs_type: None,
+                    fs_label: None,
+                    fs_uuid: None,
+                };
                 tracing::info!(
                     "{:#?}",
-                    insert_device_host(transaction, &other_host.fqdn, other_host).await
+                    insert_device_host(transaction, &other_host.fqdn, &other_device_host).await
                 );
             }
         }
