@@ -48,15 +48,15 @@ pub struct FlatDevice {
 }
 
 fn create_dev(
-    flat_dev: FlatDevice,
+    flat_dev: &FlatDevice,
     fqdn: Fqdn,
 ) -> ((DeviceId, Device), (DeviceHostKey, DeviceHost)) {
     let d = Device {
         id: flat_dev.id.clone(),
         size: Size(flat_dev.size),
-        device_type: flat_dev.device_type,
-        parents: DeviceIds(flat_dev.parents),
-        children: DeviceIds(flat_dev.children),
+        device_type: flat_dev.device_type.clone(),
+        parents: DeviceIds(flat_dev.parents.clone()),
+        children: DeviceIds(flat_dev.children.clone()),
         // usable_for_lustre: flat_dev.usable_for_lustre,
         usable_for_lustre: false,
     };
@@ -65,22 +65,22 @@ fn create_dev(
         device_id: flat_dev.id.clone(),
         fqdn,
         local: true,
-        paths: Paths(flat_dev.paths),
-        mount_path: MountPath(flat_dev.mount_path),
-        fs_type: flat_dev.fs_type,
-        fs_label: flat_dev.fs_label,
-        fs_uuid: flat_dev.fs_uuid,
+        paths: Paths(flat_dev.paths.clone()),
+        mount_path: MountPath(flat_dev.mount_path.clone()),
+        fs_type: flat_dev.fs_type.clone(),
+        fs_label: flat_dev.fs_label.clone(),
+        fs_uuid: flat_dev.fs_uuid.clone(),
     };
 
     (
         (flat_dev.id.clone(), d),
-        ((flat_dev.id, dh.fqdn.clone()), dh),
+        ((flat_dev.id.clone(), dh.fqdn.clone()), dh),
     )
 }
 
-pub fn convert_flat_devices(flat_devices: FlatDevices, fqdn: Fqdn) -> (Devices, DeviceHosts) {
+pub fn convert_flat_devices(flat_devices: &FlatDevices, fqdn: Fqdn) -> (Devices, DeviceHosts) {
     flat_devices
-        .into_iter()
+        .iter()
         .map(|x| create_dev(x.1, fqdn.clone()))
         .unzip()
 }

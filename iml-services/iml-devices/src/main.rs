@@ -49,7 +49,7 @@ async fn main() -> Result<(), error::ImlDevicesError> {
 
     while let Some((fqdn, flat_devices)) = s.try_next().await? {
         let (incoming_devices, incoming_device_hosts) =
-            db::convert_flat_devices(flat_devices, fqdn.clone());
+            db::convert_flat_devices(&flat_devices, fqdn.clone());
 
         let (mut client, conn) = connect().await?;
 

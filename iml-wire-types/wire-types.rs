@@ -1763,7 +1763,7 @@ pub mod db {
     }
 
     /// The current type of Devices we support
-    #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, serde::Serialize, serde::Deserialize)]
+    #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, serde::Serialize, serde::Deserialize)]
     pub enum DeviceType {
         ScsiDevice,
         Partition,
