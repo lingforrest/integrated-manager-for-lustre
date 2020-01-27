@@ -390,11 +390,13 @@ pub async fn update_virtual_devices<'a>(
     for pool in zpools {
         // Create a map of hostid to device.
 
+        tracing::info!("zpool: {:#?}", pool);
         for id in pool.parents.iter() {
             let other_hosts: Vec<_> = filter_device_hosts(&id, &db_device_hosts)
                 .filter(|(_, v)| &v.fqdn != fqdn)
                 .map(|(_, v)| v)
                 .collect();
+            tracing::info!("other_hosts: {:#?}", other_hosts);
 
             for other_host in other_hosts {
                 let other_device_host = DeviceHost {
