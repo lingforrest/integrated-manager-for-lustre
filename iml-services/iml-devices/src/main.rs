@@ -93,7 +93,7 @@ async fn main() -> Result<(), error::ImlDevicesError> {
         )
         .await?;
 
-        db::update_virtual_devices(&mut transaction, &fqdn, &incoming_devices, &db_device_hosts).await?;
+        db::update_virtual_devices(&mut transaction, &fqdn, &incoming_devices, &db_device_hosts, &flat_devices).await?;
 
         // db::perform_updates(
         //     &mut transaction,

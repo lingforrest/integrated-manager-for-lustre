@@ -363,6 +363,7 @@ pub async fn update_virtual_devices<'a>(
     fqdn: &Fqdn,
     incoming_devices: &Devices,
     db_device_hosts: &DeviceHosts,
+    flat_devices: &FlatDevices,
 ) -> Result<(), ImlDevicesError> {
     let (zpools, datasets, volume_groups, logical_volumes) = incoming_devices.values().fold(
         (vec![], vec![], vec![], vec![]),
@@ -391,6 +392,7 @@ pub async fn update_virtual_devices<'a>(
         // Create a map of hostid to device.
 
         tracing::info!("zpool: {:#?}", pool);
+        let pool_flat = flat_devices.get(&pool.id);
         for id in pool.parents.iter() {
             let other_hosts: Vec<_> = filter_device_hosts(&id, &db_device_hosts)
                 .filter(|(_, v)| &v.fqdn != fqdn)
@@ -403,11 +405,17 @@ pub async fn update_virtual_devices<'a>(
                     device_id: pool.id.clone(),
                     fqdn: other_host.fqdn.clone(),
                     local: true,
-                    paths: Paths(BTreeSet::new()),
+                    // Does it make sense to import paths from other hosts?
+                    paths: Paths(
+                        pool_flat
+                            .map(|x| x.paths.clone())
+                            .unwrap_or(BTreeSet::new()),
+                    ),
+                    // It can't be mounted on other hosts at the time this is processed?
                     mount_path: MountPath(None),
-                    fs_type: None,
-                    fs_label: None,
-                    fs_uuid: None,
+                    fs_type: pool_flat.map(|x| x.fs_type.clone()).unwrap_or(None),
+                    fs_label: pool_flat.map(|x| x.fs_label.clone()).unwrap_or(None),
+                    fs_uuid: pool_flat.map(|x| x.fs_uuid.clone()).unwrap_or(None),
                 };
                 tracing::info!(
                     "{:#?}",
