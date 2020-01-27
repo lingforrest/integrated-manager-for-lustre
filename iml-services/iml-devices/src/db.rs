@@ -418,10 +418,21 @@ pub async fn update_virtual_devices<'a>(
                     fs_label: pool_flat.map(|x| x.fs_label.clone()).unwrap_or(None),
                     fs_uuid: pool_flat.map(|x| x.fs_uuid.clone()).unwrap_or(None),
                 };
-                tracing::info!(
-                    "{:#?}",
-                    insert_device_host(transaction, &other_host.fqdn, &other_device_host).await
-                );
+
+                if db_device_hosts
+                    .get(&(pool.id.clone(), other_host.fqdn.clone()))
+                    .is_none()
+                {
+                    tracing::info!(
+                        "{:#?}",
+                        insert_device_host(transaction, &other_host.fqdn, &other_device_host).await
+                    );
+                } else {
+                    tracing::info!(
+                        "{:#?}",
+                        update_device_host(transaction, &other_host.fqdn, &other_device_host).await
+                    );
+                }
             }
         }
     }
