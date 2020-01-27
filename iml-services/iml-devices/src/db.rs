@@ -393,6 +393,7 @@ pub async fn update_virtual_devices<'a>(
 
         tracing::info!("zpool: {:#?}", pool);
         let pool_flat = flat_devices.get(&pool.id);
+        tracing::info!("zpool_flat: {:#?}", pool_flat);
         for id in pool.parents.iter() {
             let other_hosts: Vec<_> = filter_device_hosts(&id, &db_device_hosts)
                 .filter(|(_, v)| &v.fqdn != fqdn)
