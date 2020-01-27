@@ -398,7 +398,7 @@ pub async fn update_virtual_devices<'a>(
 
             for other_host in other_hosts {
                 let other_device_host = DeviceHost {
-                    device_id: id.clone(),
+                    device_id: pool.id.clone(),
                     fqdn: other_host.fqdn.clone(),
                     local: true,
                     paths: Paths(BTreeSet::new()),
