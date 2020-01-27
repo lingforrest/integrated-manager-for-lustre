@@ -423,15 +423,9 @@ pub async fn update_virtual_devices<'a>(
                     .get(&(pool.id.clone(), other_host.fqdn.clone()))
                     .is_none()
                 {
-                    tracing::info!(
-                        "{:#?}",
-                        insert_device_host(transaction, &other_host.fqdn, &other_device_host).await
-                    );
+                    insert_device_host(transaction, &other_host.fqdn, &other_device_host).await.unwrap();
                 } else {
-                    tracing::info!(
-                        "{:#?}",
-                        update_device_host(transaction, &other_host.fqdn, &other_device_host).await
-                    );
+                    update_device_host(transaction, &other_host.fqdn, &other_device_host).await.unwrap();
                 }
             }
         }
