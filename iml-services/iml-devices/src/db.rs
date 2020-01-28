@@ -399,6 +399,8 @@ pub async fn update_virtual_devices<'a>(
 
         let mut parents = virtual_device.parents.clone();
         let max_depth = 8;
+
+        let mut transaction_device_hosts = BTreeMap::new();
         while depth < max_depth {
             tracing::info!("depth = {}, parents = {:#?}", depth, parents);
             let mut new_parents = BTreeSet::new();
@@ -429,10 +431,17 @@ pub async fn update_virtual_devices<'a>(
                     if db_device_hosts
                         .get(&(virtual_device.id.clone(), other_host.fqdn.clone()))
                         .is_none()
+                        && transaction_device_hosts
+                            .get(&(virtual_device.id.clone(), other_host.fqdn.clone()))
+                            .is_none()
                     {
                         insert_device_host(transaction, &other_host.fqdn, &other_device_host)
                             .await
                             .unwrap();
+                        transaction_device_hosts.insert(
+                            (virtual_device.id.clone(), other_host.fqdn.clone()),
+                            other_device_host,
+                        );
                     } else {
                         update_device_host(transaction, &other_host.fqdn, &other_device_host)
                             .await
