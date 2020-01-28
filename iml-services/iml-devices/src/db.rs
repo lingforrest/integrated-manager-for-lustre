@@ -388,16 +388,16 @@ pub async fn update_virtual_devices<'a>(
         },
     );
 
-    for pool in zpools {
+    for virtual_device in zpools.iter().chain(datasets.iter()) {
         // Create a map of hostid to device.
 
-        tracing::info!("zpool: {:#?}", pool);
-        let pool_flat = flat_devices.get(&pool.id);
+        tracing::info!("zpool: {:#?}", virtual_device);
+        let pool_flat = flat_devices.get(&virtual_device.id);
         tracing::info!("zpool_flat: {:#?}", pool_flat);
 
         let mut depth = 1;
 
-        let mut parents = pool.parents.clone();
+        let mut parents = virtual_device.parents.clone();
         let max_depth = 8;
         while depth < max_depth {
             tracing::info!("depth = {}, parents = {:#?}", depth, parents);
@@ -410,7 +410,7 @@ pub async fn update_virtual_devices<'a>(
 
                 for other_host in other_hosts {
                     let other_device_host = DeviceHost {
-                        device_id: pool.id.clone(),
+                        device_id: virtual_device.id.clone(),
                         fqdn: other_host.fqdn.clone(),
                         local: true,
                         // Does it make sense to import paths from other hosts?
@@ -427,7 +427,7 @@ pub async fn update_virtual_devices<'a>(
                     };
 
                     if db_device_hosts
-                        .get(&(pool.id.clone(), other_host.fqdn.clone()))
+                        .get(&(virtual_device.id.clone(), other_host.fqdn.clone()))
                         .is_none()
                     {
                         insert_device_host(transaction, &other_host.fqdn, &other_device_host)
