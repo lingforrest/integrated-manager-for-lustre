@@ -394,40 +394,68 @@ pub async fn update_virtual_devices<'a>(
         tracing::info!("zpool: {:#?}", pool);
         let pool_flat = flat_devices.get(&pool.id);
         tracing::info!("zpool_flat: {:#?}", pool_flat);
-        for id in pool.parents.iter() {
-            let other_hosts: Vec<_> = filter_device_hosts(&id, &db_device_hosts)
-                .filter(|(_, v)| &v.fqdn != fqdn)
-                .map(|(_, v)| v)
-                .collect();
-            tracing::info!("other_hosts: {:#?}", other_hosts);
 
-            for other_host in other_hosts {
-                let other_device_host = DeviceHost {
-                    device_id: pool.id.clone(),
-                    fqdn: other_host.fqdn.clone(),
-                    local: true,
-                    // Does it make sense to import paths from other hosts?
-                    paths: Paths(
-                        pool_flat
-                            .map(|x| x.paths.clone())
-                            .unwrap_or(BTreeSet::new()),
-                    ),
-                    // It can't be mounted on other hosts at the time this is processed?
-                    mount_path: MountPath(None),
-                    fs_type: pool_flat.map(|x| x.fs_type.clone()).unwrap_or(None),
-                    fs_label: pool_flat.map(|x| x.fs_label.clone()).unwrap_or(None),
-                    fs_uuid: pool_flat.map(|x| x.fs_uuid.clone()).unwrap_or(None),
-                };
+        let mut depth = 1;
 
-                if db_device_hosts
-                    .get(&(pool.id.clone(), other_host.fqdn.clone()))
-                    .is_none()
-                {
-                    insert_device_host(transaction, &other_host.fqdn, &other_device_host).await.unwrap();
-                } else {
-                    update_device_host(transaction, &other_host.fqdn, &other_device_host).await.unwrap();
+        let mut parents = pool.parents.clone();
+        let max_depth = 8;
+        while depth < max_depth {
+            tracing::info!("depth = {}, parents = {:#?}", depth, parents);
+            let mut new_parents = BTreeSet::new();
+            for parent in parents.iter() {
+                let other_hosts: Vec<_> = filter_device_hosts(&parent, &db_device_hosts)
+                    .filter(|(_, v)| &v.fqdn != fqdn)
+                    .map(|(_, v)| v)
+                    .collect();
+
+                for other_host in other_hosts {
+                    let other_device_host = DeviceHost {
+                        device_id: pool.id.clone(),
+                        fqdn: other_host.fqdn.clone(),
+                        local: true,
+                        // Does it make sense to import paths from other hosts?
+                        paths: Paths(
+                            pool_flat
+                                .map(|x| x.paths.clone())
+                                .unwrap_or(BTreeSet::new()),
+                        ),
+                        // It can't be mounted on other hosts at the time this is processed?
+                        mount_path: MountPath(None),
+                        fs_type: pool_flat.map(|x| x.fs_type.clone()).unwrap_or(None),
+                        fs_label: pool_flat.map(|x| x.fs_label.clone()).unwrap_or(None),
+                        fs_uuid: pool_flat.map(|x| x.fs_uuid.clone()).unwrap_or(None),
+                    };
+
+                    if db_device_hosts
+                        .get(&(pool.id.clone(), other_host.fqdn.clone()))
+                        .is_none()
+                    {
+                        insert_device_host(transaction, &other_host.fqdn, &other_device_host)
+                            .await
+                            .unwrap();
+                    } else {
+                        update_device_host(transaction, &other_host.fqdn, &other_device_host)
+                            .await
+                            .unwrap();
+                    }
                 }
+
+                flat_devices.get(parent).map(|x| {
+                    for p in &x.parents {
+                        new_parents.insert(p.clone());
+                    }
+                });
             }
+
+            if new_parents.is_empty() {
+                break;
+            }
+            parents = new_parents;
+            depth += 1;
+        }
+
+        if depth == max_depth {
+            tracing::error!("Hit upper limit {} on recursion", max_depth);
         }
     }
 
