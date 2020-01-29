@@ -372,9 +372,9 @@ pub async fn update_virtual_devices<'a>(
         let virtual_device_flat = flat_devices.get(&virtual_device.id);
         tracing::info!("virtual_device_flat: {:#?}", virtual_device_flat);
 
-        let mut depth = 1;
-
         let mut parents = virtual_device.parents.clone();
+
+        let mut depth = 1;
         let max_depth = 8;
 
         let mut transaction_device_hosts = BTreeMap::new();
