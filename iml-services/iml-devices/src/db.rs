@@ -365,30 +365,7 @@ pub async fn update_virtual_devices<'a>(
     db_device_hosts: &DeviceHosts,
     flat_devices: &FlatDevices,
 ) -> Result<(), ImlDevicesError> {
-    let (zpools, datasets, volume_groups, logical_volumes) = incoming_devices.values().fold(
-        (vec![], vec![], vec![], vec![]),
-        |(mut zpools, mut datasets, mut volume_groups, mut logical_volumes), d| {
-            match d.device_type {
-                DeviceType::Zpool => {
-                    zpools.push(d);
-                }
-                DeviceType::Dataset => {
-                    datasets.push(d);
-                }
-                DeviceType::VolumeGroup => {
-                    volume_groups.push(d);
-                }
-                DeviceType::LogicalVolume => {
-                    logical_volumes.push(d);
-                }
-                _ => {}
-            };
-
-            (zpools, datasets, volume_groups, logical_volumes)
-        },
-    );
-
-    for virtual_device in zpools.iter().chain(datasets.iter()) {
+    for virtual_device in incoming_devices.values() {
         // Create a map of hostid to device.
 
         tracing::info!("zpool: {:#?}", virtual_device);
