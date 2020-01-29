@@ -359,7 +359,7 @@ pub async fn persist_local_devices<'a>(
 ///
 /// Examples are Zpools / Datasets, LVs / VGs and MdRaid.
 pub async fn update_virtual_devices<'a>(
-    mut transaction: &mut Transaction<'a>,
+    transaction: &mut Transaction<'a>,
     fqdn: &Fqdn,
     incoming_devices: &Devices,
     db_device_hosts: &DeviceHosts,
