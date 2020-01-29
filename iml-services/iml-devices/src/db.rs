@@ -382,7 +382,6 @@ pub async fn update_virtual_devices<'a>(
             tracing::info!("depth = {}, parents = {:#?}", depth, parents);
             let mut new_parents = BTreeSet::new();
 
-            // TODO: We should be removing device hosts on some condition, too
             for parent in parents.iter() {
                 let other_hosts: Vec<_> = filter_device_hosts(&parent, &db_device_hosts)
                     .filter(|(_, v)| &v.fqdn != fqdn)
@@ -426,6 +425,31 @@ pub async fn update_virtual_devices<'a>(
                         update_device_host(transaction, &other_host.fqdn, &other_device_host)
                             .await
                             .unwrap();
+                    }
+                }
+
+                for (id, db_host) in db_device_hosts {
+                    let &(ref device_id, _) = id;
+                    let device = flat_devices.get(device_id);
+                    if let Some(d) = device {
+                        let parents = &d.parents;
+                        for parent in parents {
+                            if db_device_hosts
+                                .get(&(parent.clone(), db_host.fqdn.clone()))
+                                .is_none()
+                                && transaction_device_hosts
+                                    .get(&(parent.clone(), db_host.fqdn.clone()))
+                                    .is_none()
+                            {
+                                remove_device_host(
+                                    transaction,
+                                    &db_host.fqdn.clone(),
+                                    &virtual_device.id.clone(),
+                                )
+                                .await
+                                .unwrap();
+                            }
+                        }
                     }
                 }
 
