@@ -368,9 +368,9 @@ pub async fn update_virtual_devices<'a>(
     for virtual_device in incoming_devices.values() {
         // Create a map of hostid to device.
 
-        tracing::info!("zpool: {:#?}", virtual_device);
-        let pool_flat = flat_devices.get(&virtual_device.id);
-        tracing::info!("zpool_flat: {:#?}", pool_flat);
+        tracing::info!("virtual_device: {:#?}", virtual_device);
+        let virtual_device_flat = flat_devices.get(&virtual_device.id);
+        tracing::info!("virtual_device_flat: {:#?}", virtual_device_flat);
 
         let mut depth = 1;
 
@@ -395,15 +395,15 @@ pub async fn update_virtual_devices<'a>(
                         local: true,
                         // Does it make sense to import paths from other hosts?
                         paths: Paths(
-                            pool_flat
+                            virtual_device_flat
                                 .map(|x| x.paths.clone())
                                 .unwrap_or(BTreeSet::new()),
                         ),
                         // It can't be mounted on other hosts at the time this is processed?
                         mount_path: MountPath(None),
-                        fs_type: pool_flat.map(|x| x.fs_type.clone()).unwrap_or(None),
-                        fs_label: pool_flat.map(|x| x.fs_label.clone()).unwrap_or(None),
-                        fs_uuid: pool_flat.map(|x| x.fs_uuid.clone()).unwrap_or(None),
+                        fs_type: virtual_device_flat.map(|x| x.fs_type.clone()).unwrap_or(None),
+                        fs_label: virtual_device_flat.map(|x| x.fs_label.clone()).unwrap_or(None),
+                        fs_uuid: virtual_device_flat.map(|x| x.fs_uuid.clone()).unwrap_or(None),
                     };
 
                     if db_device_hosts
