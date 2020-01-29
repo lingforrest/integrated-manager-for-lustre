@@ -404,6 +404,8 @@ pub async fn update_virtual_devices<'a>(
         while depth < max_depth {
             tracing::info!("depth = {}, parents = {:#?}", depth, parents);
             let mut new_parents = BTreeSet::new();
+
+            // TODO: We should be removing device hosts on some condition, too
             for parent in parents.iter() {
                 let other_hosts: Vec<_> = filter_device_hosts(&parent, &db_device_hosts)
                     .filter(|(_, v)| &v.fqdn != fqdn)
@@ -435,6 +437,7 @@ pub async fn update_virtual_devices<'a>(
                             .get(&(virtual_device.id.clone(), other_host.fqdn.clone()))
                             .is_none()
                     {
+                        // TODO: Produce changes instead of directly mutating the transaction
                         insert_device_host(transaction, &other_host.fqdn, &other_device_host)
                             .await
                             .unwrap();
