@@ -366,8 +366,6 @@ pub async fn update_virtual_devices<'a>(
     flat_devices: &FlatDevices,
 ) -> Result<(), ImlDevicesError> {
     for virtual_device in incoming_devices.values() {
-        // Create a map of hostid to device.
-
         tracing::info!("virtual_device: {:#?}", virtual_device);
         let virtual_device_flat = flat_devices.get(&virtual_device.id);
         tracing::info!("virtual_device_flat: {:#?}", virtual_device_flat);
