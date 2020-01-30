@@ -362,13 +362,16 @@ pub async fn update_virtual_devices<'a>(
     transaction: &mut Transaction<'a>,
     fqdn: &Fqdn,
     incoming_devices: &Devices,
+    incoming_device_hosts: &DeviceHosts,
     db_device_hosts: &DeviceHosts,
-    flat_devices: &FlatDevices,
+    db_devices: &Devices,
 ) -> Result<(), ImlDevicesError> {
     for virtual_device in incoming_devices.values() {
         tracing::info!("virtual_device: {:#?}", virtual_device);
-        let virtual_device_flat = flat_devices.get(&virtual_device.id);
-        tracing::info!("virtual_device_flat: {:#?}", virtual_device_flat);
+        let virtual_device_host = incoming_device_hosts
+            .get(&(virtual_device.id.clone(), fqdn.clone()))
+            .or_else(|| db_device_hosts.get(&(virtual_device.id.clone(), fqdn.clone())));
+        tracing::info!("virtual_device_host: {:#?}", virtual_device_host);
 
         let mut parents = virtual_device.parents.clone();
 
@@ -393,15 +396,21 @@ pub async fn update_virtual_devices<'a>(
                         local: true,
                         // Does it make sense to import paths from other hosts?
                         paths: Paths(
-                            virtual_device_flat
+                            virtual_device_host
                                 .map(|x| x.paths.clone())
                                 .unwrap_or(BTreeSet::new()),
                         ),
                         // It can't be mounted on other hosts at the time this is processed?
                         mount_path: MountPath(None),
-                        fs_type: virtual_device_flat.map(|x| x.fs_type.clone()).unwrap_or(None),
-                        fs_label: virtual_device_flat.map(|x| x.fs_label.clone()).unwrap_or(None),
-                        fs_uuid: virtual_device_flat.map(|x| x.fs_uuid.clone()).unwrap_or(None),
+                        fs_type: virtual_device_host
+                            .map(|x| x.fs_type.clone())
+                            .unwrap_or(None),
+                        fs_label: virtual_device_host
+                            .map(|x| x.fs_label.clone())
+                            .unwrap_or(None),
+                        fs_uuid: virtual_device_host
+                            .map(|x| x.fs_uuid.clone())
+                            .unwrap_or(None),
                     };
 
                     if db_device_hosts
@@ -428,10 +437,10 @@ pub async fn update_virtual_devices<'a>(
 
                 for (id, db_host) in db_device_hosts {
                     let &(ref device_id, _) = id;
-                    let device = flat_devices.get(device_id);
+                    let device = incoming_devices.get(device_id);
                     if let Some(d) = device {
                         let parents = &d.parents;
-                        for parent in parents {
+                        for parent in parents.iter() {
                             if db_device_hosts
                                 .get(&(parent.clone(), db_host.fqdn.clone()))
                                 .is_none()
@@ -451,11 +460,14 @@ pub async fn update_virtual_devices<'a>(
                     }
                 }
 
-                flat_devices.get(parent).map(|x| {
-                    for p in &x.parents {
-                        new_parents.insert(p.clone());
-                    }
-                });
+                incoming_devices
+                    .get(parent)
+                    .or_else(|| db_devices.get(parent))
+                    .map(|x| {
+                        for p in x.parents.iter() {
+                            new_parents.insert(p.clone());
+                        }
+                    });
             }
 
             if new_parents.is_empty() {
