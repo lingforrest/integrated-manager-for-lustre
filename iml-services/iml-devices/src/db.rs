@@ -85,10 +85,6 @@ pub fn convert_flat_devices(flat_devices: &FlatDevices, fqdn: Fqdn) -> (Devices,
         .unzip()
 }
 
-fn get_fqdns<'a>(device_hosts: &'a DeviceHosts) -> impl Iterator<Item = &'a Fqdn> {
-    device_hosts.iter().map(|((d, fqdn), v)| fqdn)
-}
-
 /// Given a device id and some `DeviceHosts`,
 /// filter to the cooresponding hosts.
 fn filter_device_hosts<'a>(
