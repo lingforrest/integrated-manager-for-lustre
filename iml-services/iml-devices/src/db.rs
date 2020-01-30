@@ -361,6 +361,13 @@ pub async fn update_virtual_devices<'a>(
     db_device_hosts: &DeviceHosts,
     db_devices: &Devices,
 ) -> Result<Vec<Change<DeviceHost>>, ImlDevicesError> {
+    tracing::info!(
+        "Incoming: devices: {}, device hosts: {}, Database: devices: {}, device hosts: {}",
+        incoming_devices.len(),
+        incoming_device_hosts.len(),
+        db_devices.len(),
+        db_device_hosts.len()
+    );
     let mut results = Vec::new();
 
     for virtual_device in incoming_devices.values() {
@@ -417,9 +424,8 @@ pub async fn update_virtual_devices<'a>(
                             .get(&(virtual_device.id.clone(), other_host.fqdn.clone()))
                             .is_none()
                     {
-                        transaction_device_hosts.insert(
-                            (virtual_device.id.clone(), other_host.fqdn.clone()),
-                        );
+                        transaction_device_hosts
+                            .insert((virtual_device.id.clone(), other_host.fqdn.clone()));
                         results.push(Change::Add(other_device_host));
                     } else {
                         results.push(Change::Update(other_device_host));
@@ -481,4 +487,144 @@ pub async fn update_virtual_devices<'a>(
     }
 
     Ok(results)
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use insta::assert_debug_snapshot;
+    use tracing_subscriber::FmtSubscriber;
+
+    #[tokio::test]
+    async fn test_simplest() {
+        let subscriber = FmtSubscriber::new();
+
+        tracing::subscriber::set_global_default(subscriber)
+            .map_err(|_err| eprintln!("Unable to set global default subscriber"))
+            .unwrap();
+
+        let incoming_devices: BTreeMap<_, _> = vec![
+            Device {
+                id: DeviceId("a".into()),
+                size: Size(1),
+                usable_for_lustre: false,
+                device_type: DeviceType::ScsiDevice,
+                parents: DeviceIds(BTreeSet::new()),
+                children: DeviceIds(vec!["b"].into_iter().map(|x| DeviceId(x.into())).collect()),
+            },
+            Device {
+                id: DeviceId("b".into()),
+                size: Size(1),
+                usable_for_lustre: false,
+                device_type: DeviceType::Mpath,
+                parents: DeviceIds(vec!["a"].into_iter().map(|x| DeviceId(x.into())).collect()),
+                children: DeviceIds(vec!["c"].into_iter().map(|x| DeviceId(x.into())).collect()),
+            },
+            Device {
+                id: DeviceId("c".into()),
+                size: Size(1),
+                usable_for_lustre: false,
+                device_type: DeviceType::Zpool,
+                parents: DeviceIds(vec!["b"].into_iter().map(|x| DeviceId(x.into())).collect()),
+                children: DeviceIds(BTreeSet::new()),
+            },
+        ]
+        .into_iter()
+        .map(|x| (x.id.clone(), x))
+        .collect();
+        let incoming_device_hosts = vec![
+            DeviceHost {
+                device_id: DeviceId("a".into()),
+                fqdn: Fqdn("oss1".into()),
+                local: true,
+                paths: Paths(
+                    vec!["/fake/path/scsi/a"]
+                        .into_iter()
+                        .map(|x| PathBuf::from(x))
+                        .collect(),
+                ),
+                mount_path: MountPath(Some("/fake/path/scsi/a".into())),
+                fs_type: Some("some_fs".into()),
+                fs_label: Some("some_label".into()),
+                fs_uuid: Some("some_uuid".into()),
+            },
+            DeviceHost {
+                device_id: DeviceId("b".into()),
+                fqdn: Fqdn("oss1".into()),
+                local: true,
+                paths: Paths(
+                    vec!["/fake/path/mpath/a"]
+                        .into_iter()
+                        .map(|x| PathBuf::from(x))
+                        .collect(),
+                ),
+                mount_path: MountPath(Some("/fake/path/mpath/a".into())),
+                fs_type: Some("some_fs".into()),
+                fs_label: Some("some_label".into()),
+                fs_uuid: Some("some_uuid".into()),
+            },
+            DeviceHost {
+                device_id: DeviceId("c".into()),
+                fqdn: Fqdn("oss1".into()),
+                local: true,
+                paths: Paths(
+                    vec!["/fake/path/zpool/a"]
+                        .into_iter()
+                        .map(|x| PathBuf::from(x))
+                        .collect(),
+                ),
+                mount_path: MountPath(Some("/fake/path/zpool/a".into())),
+                fs_type: Some("some_fs".into()),
+                fs_label: Some("some_label".into()),
+                fs_uuid: Some("some_uuid".into()),
+            },
+            DeviceHost {
+                device_id: DeviceId("a".into()),
+                fqdn: Fqdn("oss2".into()),
+                local: true,
+                paths: Paths(
+                    vec!["/fake/path/scsi/a"]
+                        .into_iter()
+                        .map(|x| PathBuf::from(x))
+                        .collect(),
+                ),
+                mount_path: MountPath(Some("/fake/path/scsi/a".into())),
+                fs_type: Some("some_fs".into()),
+                fs_label: Some("some_label".into()),
+                fs_uuid: Some("some_uuid".into()),
+            },
+            DeviceHost {
+                device_id: DeviceId("b".into()),
+                fqdn: Fqdn("oss2".into()),
+                local: true,
+                paths: Paths(
+                    vec!["/fake/path/mpath/a"]
+                        .into_iter()
+                        .map(|x| PathBuf::from(x))
+                        .collect(),
+                ),
+                mount_path: MountPath(Some("/fake/path/mpath/a".into())),
+                fs_type: Some("some_fs".into()),
+                fs_label: Some("some_label".into()),
+                fs_uuid: Some("some_uuid".into()),
+            },
+        ]
+        .into_iter()
+        .map(|x| ((x.device_id.clone(), x.fqdn.clone()), x))
+        .collect();
+        let db_devices = BTreeMap::new();
+        let db_device_hosts = BTreeMap::new();
+
+        let updates = update_virtual_devices(
+            &Fqdn("oss1".into()),
+            &incoming_devices,
+            &incoming_device_hosts,
+            &db_device_hosts,
+            &db_devices,
+        )
+        .await
+        .unwrap();
+
+        assert_debug_snapshot!("virtual_device_updates", updates);
+    }
 }

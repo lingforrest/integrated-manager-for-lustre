@@ -7,6 +7,7 @@ use std::{
     ops::Deref,
 };
 
+#[derive(Debug, PartialEq)]
 pub enum Change<T> {
     Add(T),
     Update(T),

@@ -1639,7 +1639,7 @@ pub mod db {
     #[derive(
         Debug, serde::Serialize, serde::Deserialize, Eq, PartialEq, Ord, PartialOrd, Clone, Hash,
     )]
-    pub struct DeviceId(String);
+    pub struct DeviceId(pub String);
 
     #[cfg(feature = "postgres-interop")]
     impl ToSql for DeviceId {
