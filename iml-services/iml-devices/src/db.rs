@@ -359,13 +359,14 @@ pub async fn persist_local_devices<'a>(
 ///
 /// Examples are Zpools / Datasets, LVs / VGs and MdRaid.
 pub async fn update_virtual_devices<'a>(
-    transaction: &mut Transaction<'a>,
     fqdn: &Fqdn,
     incoming_devices: &Devices,
     incoming_device_hosts: &DeviceHosts,
     db_device_hosts: &DeviceHosts,
     db_devices: &Devices,
-) -> Result<(), ImlDevicesError> {
+) -> Result<Vec<Change<DeviceHost>>, ImlDevicesError> {
+    let mut results = Vec::new();
+
     for virtual_device in incoming_devices.values() {
         tracing::info!("virtual_device: {:#?}", virtual_device);
         let virtual_device_host = incoming_device_hosts
@@ -378,7 +379,7 @@ pub async fn update_virtual_devices<'a>(
         let mut depth = 1;
         let max_depth = 8;
 
-        let mut transaction_device_hosts = BTreeMap::new();
+        let mut transaction_device_hosts = BTreeSet::new();
         while depth < max_depth {
             tracing::info!("depth = {}, parents = {:#?}", depth, parents);
             let mut new_parents = BTreeSet::new();
@@ -420,18 +421,12 @@ pub async fn update_virtual_devices<'a>(
                             .get(&(virtual_device.id.clone(), other_host.fqdn.clone()))
                             .is_none()
                     {
-                        // TODO: Produce changes instead of directly mutating the transaction
-                        insert_device_host(transaction, &other_host.fqdn, &other_device_host)
-                            .await
-                            .unwrap();
                         transaction_device_hosts.insert(
                             (virtual_device.id.clone(), other_host.fqdn.clone()),
-                            other_device_host,
                         );
+                        results.push(Change::Add(other_device_host));
                     } else {
-                        update_device_host(transaction, &other_host.fqdn, &other_device_host)
-                            .await
-                            .unwrap();
+                        results.push(Change::Update(other_device_host));
                     }
                 }
 
@@ -448,13 +443,20 @@ pub async fn update_virtual_devices<'a>(
                                     .get(&(parent.clone(), db_host.fqdn.clone()))
                                     .is_none()
                             {
-                                remove_device_host(
-                                    transaction,
-                                    &db_host.fqdn.clone(),
-                                    &virtual_device.id.clone(),
-                                )
-                                .await
-                                .unwrap();
+                                let other_device_host = DeviceHost {
+                                    device_id: virtual_device.id.clone(),
+                                    fqdn: db_host.fqdn.clone(),
+                                    local: true,
+                                    // Does it make sense to import paths from other hosts?
+                                    paths: Paths(BTreeSet::new()),
+                                    // It can't be mounted on other hosts at the time this is processed?
+                                    mount_path: MountPath(None),
+                                    fs_type: None,
+                                    fs_label: None,
+                                    fs_uuid: None,
+                                };
+
+                                results.push(Change::Remove(other_device_host));
                             }
                         }
                     }
@@ -482,7 +484,7 @@ pub async fn update_virtual_devices<'a>(
         }
     }
 
-    Ok(())
+    Ok(results)
 }
 
 // pub async fn perform_updates<'a>(
