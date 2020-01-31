@@ -429,10 +429,20 @@ pub async fn update_virtual_devices<'a>(
                             .get(&(virtual_device.id.clone(), other_host.fqdn.clone()))
                             .is_none()
                     {
+                        tracing::info!(
+                            "Adding new device host with id {:?} to host {:?}",
+                            virtual_device.id,
+                            other_host.fqdn
+                        );
                         transaction_device_hosts
                             .insert((virtual_device.id.clone(), other_host.fqdn.clone()));
                         results.push(Change::Add(other_device_host));
                     } else {
+                        tracing::info!(
+                            "Updating device host with id {:?} to host {:?}",
+                            virtual_device.id,
+                            other_host.fqdn
+                        );
                         results.push(Change::Update(other_device_host));
                     }
                 }
@@ -463,6 +473,11 @@ pub async fn update_virtual_devices<'a>(
                                     fs_uuid: None,
                                 };
 
+                                tracing::info!(
+                                    "Removing device host with id {:?} to host {:?}",
+                                    virtual_device.id,
+                                    other_device_host.fqdn
+                                );
                                 results.push(Change::Remove(other_device_host));
                             }
                         }
