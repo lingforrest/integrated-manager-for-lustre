@@ -513,6 +513,7 @@ pub async fn update_virtual_devices<'a>(
 mod test {
     use super::*;
     use insta::assert_debug_snapshot;
+    use std::fs;
     use tracing_subscriber::FmtSubscriber;
 
     #[tokio::test]
@@ -522,6 +523,9 @@ mod test {
         tracing::subscriber::set_global_default(subscriber)
             .map_err(|_err| eprintln!("Unable to set global default subscriber"))
             .unwrap();
+
+        let devices_from_json = fs::read_to_string("./fixtures.json").unwrap();
+        let devices: Devices = serde_json::from_str(&devices_from_json).unwrap();
 
         let incoming_devices: BTreeMap<_, _> = vec![
             Device {

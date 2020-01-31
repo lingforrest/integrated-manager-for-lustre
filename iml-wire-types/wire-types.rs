@@ -1770,7 +1770,7 @@ pub mod db {
         }
     }
 
-    #[derive(Debug, Default, PartialEq, Eq)]
+    #[derive(Debug, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
     pub struct DeviceIds(pub BTreeSet<DeviceId>);
 
     impl Deref for DeviceIds {
@@ -1814,7 +1814,7 @@ pub mod db {
         }
     }
 
-    #[derive(Debug, PartialEq, Eq)]
+    #[derive(Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
     pub struct Size(pub u64);
 
     #[cfg(feature = "postgres-interop")]
@@ -1930,7 +1930,7 @@ pub mod db {
 
     /// A device (Block or Virtual).
     /// These should be unique per cluster
-    #[derive(Debug, PartialEq, Eq)]
+    #[derive(Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
     pub struct Device {
         pub id: DeviceId,
         pub size: Size,
