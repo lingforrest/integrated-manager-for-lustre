@@ -96,6 +96,7 @@ pub enum ImlAgentError {
     InvalidHeaderValue(http::header::InvalidHeaderValue),
     NativeTls(native_tls::Error),
     XmlError(elementtree::Error),
+    FmtError(strfmt::FmtError),
     CibError(CibError),
     UnexpectedStatusError,
     MarkerNotFound,
@@ -128,6 +129,7 @@ impl std::fmt::Display for ImlAgentError {
             ImlAgentError::InvalidHeaderValue(ref err) => write!(f, "{}", err),
             ImlAgentError::NativeTls(ref err) => write!(f, "{}", err),
             ImlAgentError::XmlError(ref err) => write!(f, "{}", err),
+            ImlAgentError::FmtError(ref err) => write!(f, "{}", err),
             ImlAgentError::CibError(ref err) => write!(f, "{}", err),
             ImlAgentError::UnexpectedStatusError => write!(f, "Unexpected status code"),
             ImlAgentError::MarkerNotFound => write!(f, "Marker not found"),
@@ -162,6 +164,7 @@ impl std::error::Error for ImlAgentError {
             ImlAgentError::InvalidHeaderValue(ref err) => Some(err),
             ImlAgentError::NativeTls(ref err) => Some(err),
             ImlAgentError::XmlError(ref err) => Some(err),
+            ImlAgentError::FmtError(ref err) => Some(err),
             ImlAgentError::CibError(ref err) => Some(err),
             ImlAgentError::UnexpectedStatusError => None,
             ImlAgentError::MarkerNotFound => None,
@@ -316,6 +319,12 @@ impl From<native_tls::Error> for ImlAgentError {
 impl From<elementtree::Error> for ImlAgentError {
     fn from(err: elementtree::Error) -> Self {
         ImlAgentError::XmlError(err)
+    }
+}
+
+impl From<strfmt::FmtError> for ImlAgentError {
+    fn from(err: strfmt::FmtError) -> Self {
+        ImlAgentError::FmtError(err)
     }
 }
 
