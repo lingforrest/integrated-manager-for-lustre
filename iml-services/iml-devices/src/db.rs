@@ -388,9 +388,14 @@ pub async fn update_virtual_devices<'a>(
             let mut new_parents = BTreeSet::new();
 
             for parent in parents.iter() {
-                let other_hosts: Vec<_> = filter_device_hosts(&parent, &db_device_hosts)
+                let other_hosts: Vec<_> = filter_device_hosts(&parent, &incoming_device_hosts)
                     .filter(|(_, v)| &v.fqdn != fqdn)
                     .map(|(_, v)| v)
+                    .chain(
+                        filter_device_hosts(&parent, &db_device_hosts)
+                            .filter(|(_, v)| &v.fqdn != fqdn)
+                            .map(|(_, v)| v),
+                    )
                     .collect();
 
                 for other_host in other_hosts {
