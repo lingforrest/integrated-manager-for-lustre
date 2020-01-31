@@ -524,8 +524,8 @@ mod test {
             .map_err(|_err| eprintln!("Unable to set global default subscriber"))
             .unwrap();
 
-        let devices_from_json = fs::read_to_string("./fixtures.json").unwrap();
-        let devices: Devices = serde_json::from_str(&devices_from_json).unwrap();
+        // let devices_from_json = fs::read_to_string("./fixture_simplest.json").unwrap();
+        // let devices: Devices = serde_json::from_str(&devices_from_json).unwrap();
 
         let incoming_devices: BTreeMap<_, _> = vec![
             Device {
@@ -638,6 +638,18 @@ mod test {
         .collect();
         let db_devices = BTreeMap::new();
         let db_device_hosts = BTreeMap::new();
+
+        let json = serde_json::to_string_pretty(&db_devices).unwrap();
+        fs::write("./fixture_simplest_db_devices.json", json).unwrap();
+
+        let json = serde_json::to_string_pretty(&db_device_hosts).unwrap();
+        fs::write("./fixture_simplest_db_device_hosts.json", json).unwrap();
+
+        let json = serde_json::to_string_pretty(&incoming_devices).unwrap();
+        fs::write("./fixture_simplest_incoming_devices.json", json).unwrap();
+
+        let json = serde_json::to_string_pretty(&incoming_device_hosts).unwrap();
+        fs::write("./fixture_simplest_incoming_device_hosts.json", json).unwrap();
 
         let updates = update_virtual_devices(
             &Fqdn("oss1".into()),

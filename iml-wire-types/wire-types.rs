@@ -1962,7 +1962,7 @@ pub mod db {
         }
     }
 
-    #[derive(Debug, PartialEq, Eq)]
+    #[derive(Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
     pub struct Paths(pub BTreeSet<PathBuf>);
 
     impl Deref for Paths {
@@ -2006,7 +2006,7 @@ pub mod db {
         }
     }
 
-    #[derive(Debug, PartialEq, Eq)]
+    #[derive(Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
     pub struct MountPath(pub Option<PathBuf>);
 
     #[cfg(feature = "postgres-interop")]
@@ -2041,7 +2041,7 @@ pub mod db {
 
     /// A pointer to a `Device` present on a host.
     /// Stores mount_path and paths to reach the pointed to `Device`.
-    #[derive(Debug, PartialEq, Eq)]
+    #[derive(Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
     pub struct DeviceHost {
         pub device_id: DeviceId,
         pub fqdn: Fqdn,
