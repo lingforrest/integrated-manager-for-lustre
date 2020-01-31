@@ -358,8 +358,8 @@ pub async fn update_virtual_devices<'a>(
     fqdn: &Fqdn,
     incoming_devices: &Devices,
     incoming_device_hosts: &DeviceHosts,
-    db_device_hosts: &DeviceHosts,
     db_devices: &Devices,
+    db_device_hosts: &DeviceHosts,
 ) -> Result<Vec<Change<DeviceHost>>, ImlDevicesError> {
     tracing::info!(
         "Incoming: devices: {}, device hosts: {}, Database: devices: {}, device hosts: {}",
