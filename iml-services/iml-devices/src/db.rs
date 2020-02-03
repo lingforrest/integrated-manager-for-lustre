@@ -622,4 +622,21 @@ mod test {
         assert_debug_snapshot!("vd_with_shared_parents_updated_on_oss2", updates);
     }
 
+    #[tokio::test]
+    async fn test_vd_with_shared_parents_removed_from_oss2_when_parent_disappears() {
+        let (incoming_devices, incoming_device_hosts, db_devices, db_device_hosts) =
+            deser_fixture("vd_with_shared_parents_removed_from_oss2_when_parent_disappears");
+
+        let updates = update_virtual_devices(
+            &Fqdn("oss1".into()),
+            &incoming_devices,
+            &incoming_device_hosts,
+            &db_devices,
+            &db_device_hosts,
+        )
+        .await
+        .unwrap();
+
+        assert_debug_snapshot!("vd_with_shared_parents_removed_from_oss2_when_parent_disappears", updates);
+    }
 }
