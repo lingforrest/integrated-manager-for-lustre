@@ -561,7 +561,7 @@ mod test {
     }
 
     #[tokio::test]
-    async fn test_simplest() {
+    async fn test_vd_with_shared_parents_added_to_oss2() {
         let subscriber = FmtSubscriber::new();
 
         tracing::subscriber::set_global_default(subscriber)
@@ -569,7 +569,7 @@ mod test {
             .unwrap();
 
         let (incoming_devices, incoming_device_hosts, db_devices, db_device_hosts) =
-            deser_fixture("simplest");
+            deser_fixture("vd_with_shared_parents_added_to_oss2");
 
         let updates = update_virtual_devices(
             &Fqdn("oss1".into()),
