@@ -535,6 +535,31 @@ mod test {
             .collect()
     }
 
+    fn deser_fixture(
+        test_name: &str,
+    ) -> (
+        BTreeMap<DeviceId, Device>,
+        BTreeMap<(DeviceId, Fqdn), DeviceHost>,
+        BTreeMap<DeviceId, Device>,
+        BTreeMap<(DeviceId, Fqdn), DeviceHost>,
+    ) {
+        let prefix = String::from("fixtures/") + test_name + "/";
+
+        let incoming_devices = deser_devices(prefix.clone() + "incoming_devices.json");
+        let db_devices = deser_devices(prefix.clone() + "db_devices.json");
+
+        let incoming_device_hosts =
+            deser_device_hosts(prefix.clone() + "incoming_device_hosts.json");
+        let db_device_hosts = deser_device_hosts(prefix + "db_device_hosts.json");
+
+        (
+            incoming_devices,
+            incoming_device_hosts,
+            db_devices,
+            db_device_hosts,
+        )
+    }
+
     #[tokio::test]
     async fn test_simplest() {
         let subscriber = FmtSubscriber::new();
@@ -543,12 +568,8 @@ mod test {
             .map_err(|_err| eprintln!("Unable to set global default subscriber"))
             .unwrap();
 
-        let incoming_devices = deser_devices("./fixtures/simplest/incoming_devices.json");
-        let db_devices = deser_devices("./fixtures/simplest/db_devices.json");
-
-        let incoming_device_hosts =
-            deser_device_hosts("./fixtures/simplest/incoming_device_hosts.json");
-        let db_device_hosts = deser_device_hosts("./fixtures/simplest/db_device_hosts.json");
+        let (incoming_devices, incoming_device_hosts, db_devices, db_device_hosts) =
+            deser_fixture("simplest");
 
         let updates = update_virtual_devices(
             &Fqdn("oss1".into()),
