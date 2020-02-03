@@ -524,38 +524,8 @@ mod test {
             .map_err(|_err| eprintln!("Unable to set global default subscriber"))
             .unwrap();
 
-        // let devices_from_json = fs::read_to_string("./fixture_simplest.json").unwrap();
-        // let devices: Devices = serde_json::from_str(&devices_from_json).unwrap();
-
-        let incoming_devices: BTreeMap<_, _> = vec![
-            Device {
-                id: DeviceId("a".into()),
-                size: Size(1),
-                usable_for_lustre: false,
-                device_type: DeviceType::ScsiDevice,
-                parents: DeviceIds(BTreeSet::new()),
-                children: DeviceIds(vec!["b"].into_iter().map(|x| DeviceId(x.into())).collect()),
-            },
-            Device {
-                id: DeviceId("b".into()),
-                size: Size(1),
-                usable_for_lustre: false,
-                device_type: DeviceType::Mpath,
-                parents: DeviceIds(vec!["a"].into_iter().map(|x| DeviceId(x.into())).collect()),
-                children: DeviceIds(vec!["c"].into_iter().map(|x| DeviceId(x.into())).collect()),
-            },
-            Device {
-                id: DeviceId("c".into()),
-                size: Size(1),
-                usable_for_lustre: false,
-                device_type: DeviceType::Zpool,
-                parents: DeviceIds(vec!["b"].into_iter().map(|x| DeviceId(x.into())).collect()),
-                children: DeviceIds(BTreeSet::new()),
-            },
-        ]
-        .into_iter()
-        .map(|x| (x.id.clone(), x))
-        .collect();
+        let devices_from_json = fs::read_to_string("./fixtures/simplest_incoming_devices.json").unwrap();
+        let incoming_devices: BTreeMap<_, _> = serde_json::from_str(&devices_from_json).unwrap();
 
         let incoming_device_hosts_vec = vec![
             DeviceHost {
@@ -637,18 +607,6 @@ mod test {
 
         let db_devices = BTreeMap::new();
         let db_device_hosts = BTreeMap::new();
-
-        let json = serde_json::to_string_pretty(&db_devices).unwrap();
-        fs::write("./fixture_simplest_db_devices.json", json).unwrap();
-
-        let json = serde_json::to_string_pretty(&db_device_hosts).unwrap();
-        fs::write("./fixture_simplest_db_device_hosts.json", json).unwrap();
-
-        let json = serde_json::to_string_pretty(&incoming_devices).unwrap();
-        fs::write("./fixture_simplest_incoming_devices.json", json).unwrap();
-
-        let json = serde_json::to_string_pretty(&incoming_device_hosts_vec).unwrap();
-        fs::write("./fixture_simplest_incoming_device_hosts.json", json).unwrap();
 
         let incoming_device_hosts = incoming_device_hosts_vec
             .into_iter()
