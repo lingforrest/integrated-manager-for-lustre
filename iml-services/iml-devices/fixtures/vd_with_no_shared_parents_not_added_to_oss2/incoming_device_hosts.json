@@ -52,9 +52,9 @@
     "fqdn": "oss2",
     "local": true,
     "paths": [
-      "/fake/path/mpath/a"
+      "/fake/path/mpath/d"
     ],
-    "mount_path": "/fake/path/mpath/a",
+    "mount_path": "/fake/path/mpath/d",
     "fs_type": "some_fs",
     "fs_label": "some_label",
     "fs_uuid": "some_uuid"

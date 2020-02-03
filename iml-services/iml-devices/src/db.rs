@@ -560,7 +560,7 @@ mod test {
         )
     }
 
-    fn init_subscriber() {
+    fn _init_subscriber() {
         let subscriber = FmtSubscriber::new();
 
         tracing::subscriber::set_global_default(subscriber)
@@ -570,8 +570,6 @@ mod test {
 
     #[tokio::test]
     async fn test_vd_with_shared_parents_added_to_oss2() {
-        init_subscriber();
-
         let (incoming_devices, incoming_device_hosts, db_devices, db_device_hosts) =
             deser_fixture("vd_with_shared_parents_added_to_oss2");
 
@@ -590,8 +588,6 @@ mod test {
 
     #[tokio::test]
     async fn test_vd_with_no_shared_parents_not_added_to_oss2() {
-        init_subscriber();
-
         let (incoming_devices, incoming_device_hosts, db_devices, db_device_hosts) =
             deser_fixture("vd_with_no_shared_parents_not_added_to_oss2");
 
