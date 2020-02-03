@@ -585,6 +585,26 @@ mod test {
         .await
         .unwrap();
 
-        assert_debug_snapshot!("virtual_device_updates", updates);
+        assert_debug_snapshot!("vd_with_shared_parents_added_to_oss2", updates);
+    }
+
+    #[tokio::test]
+    async fn test_vd_with_no_shared_parents_not_added_to_oss2() {
+        init_subscriber();
+
+        let (incoming_devices, incoming_device_hosts, db_devices, db_device_hosts) =
+            deser_fixture("vd_with_no_shared_parents_not_added_to_oss2");
+
+        let updates = update_virtual_devices(
+            &Fqdn("oss1".into()),
+            &incoming_devices,
+            &incoming_device_hosts,
+            &db_devices,
+            &db_device_hosts,
+        )
+        .await
+        .unwrap();
+
+        assert_debug_snapshot!("vd_with_no_shared_parents_not_added_to_oss2", updates);
     }
 }

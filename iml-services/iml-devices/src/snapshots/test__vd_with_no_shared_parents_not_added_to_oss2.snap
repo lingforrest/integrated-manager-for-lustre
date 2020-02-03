@@ -1,0 +1,26 @@
+---
+source: iml-services/iml-devices/src/db.rs
+expression: updates
+---
+[
+    Add(
+        DeviceHost {
+            device_id: DeviceId(
+                "e",
+            ),
+            fqdn: Fqdn(
+                "oss2",
+            ),
+            local: true,
+            paths: Paths(
+                {},
+            ),
+            mount_path: MountPath(
+                None,
+            ),
+            fs_type: None,
+            fs_label: None,
+            fs_uuid: None,
+        },
+    ),
+]
