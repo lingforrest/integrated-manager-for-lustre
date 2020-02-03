@@ -513,8 +513,27 @@ pub async fn update_virtual_devices<'a>(
 mod test {
     use super::*;
     use insta::assert_debug_snapshot;
-    use std::fs;
+    use std::{fs, path::Path};
     use tracing_subscriber::FmtSubscriber;
+
+    fn deser_devices<P>(path: P) -> BTreeMap<DeviceId, Device>
+    where
+        P: AsRef<Path>,
+    {
+        let devices_from_json = fs::read_to_string(path).unwrap();
+        serde_json::from_str(&devices_from_json).unwrap()
+    }
+
+    fn deser_device_hosts<P>(path: P) -> BTreeMap<(DeviceId, Fqdn), DeviceHost>
+    where
+        P: AsRef<Path>,
+    {
+        let device_hosts_from_json = fs::read_to_string(path).unwrap();
+        let vec: Vec<DeviceHost> = serde_json::from_str(&device_hosts_from_json).unwrap();
+        vec.into_iter()
+            .map(|x| ((x.device_id.clone(), x.fqdn.clone()), x))
+            .collect()
+    }
 
     #[tokio::test]
     async fn test_simplest() {
@@ -524,32 +543,12 @@ mod test {
             .map_err(|_err| eprintln!("Unable to set global default subscriber"))
             .unwrap();
 
-        let devices_from_json =
-            fs::read_to_string("./fixtures/simplest/incoming_devices.json").unwrap();
-        let incoming_devices: BTreeMap<_, _> = serde_json::from_str(&devices_from_json).unwrap();
+        let incoming_devices = deser_devices("./fixtures/simplest/incoming_devices.json");
+        let db_devices = deser_devices("./fixtures/simplest/db_devices.json");
 
-        let device_hosts_from_json =
-            fs::read_to_string("./fixtures/simplest/incoming_device_hosts.json").unwrap();
-        let incoming_device_hosts_vec: Vec<DeviceHost> =
-            serde_json::from_str(&device_hosts_from_json).unwrap();
-
-        let devices_from_json = fs::read_to_string("./fixtures/simplest/db_devices.json").unwrap();
-        let db_devices: BTreeMap<_, _> = serde_json::from_str(&devices_from_json).unwrap();
-
-        let device_hosts_from_json =
-            fs::read_to_string("./fixtures/simplest/db_device_hosts.json").unwrap();
-        let db_device_hosts_vec: Vec<DeviceHost> =
-            serde_json::from_str(&device_hosts_from_json).unwrap();
-
-        let incoming_device_hosts = incoming_device_hosts_vec
-            .into_iter()
-            .map(|x| ((x.device_id.clone(), x.fqdn.clone()), x))
-            .collect();
-
-        let db_device_hosts = db_device_hosts_vec
-            .into_iter()
-            .map(|x| ((x.device_id.clone(), x.fqdn.clone()), x))
-            .collect();
+        let incoming_device_hosts =
+            deser_device_hosts("./fixtures/simplest/incoming_device_hosts.json");
+        let db_device_hosts = deser_device_hosts("./fixtures/simplest/db_device_hosts.json");
 
         let updates = update_virtual_devices(
             &Fqdn("oss1".into()),
