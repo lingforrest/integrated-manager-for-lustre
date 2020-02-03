@@ -525,19 +525,19 @@ mod test {
             .unwrap();
 
         let devices_from_json =
-            fs::read_to_string("./fixtures/simplest_incoming_devices.json").unwrap();
+            fs::read_to_string("./fixtures/simplest/incoming_devices.json").unwrap();
         let incoming_devices: BTreeMap<_, _> = serde_json::from_str(&devices_from_json).unwrap();
 
         let device_hosts_from_json =
-            fs::read_to_string("./fixtures/simplest_incoming_device_hosts.json").unwrap();
+            fs::read_to_string("./fixtures/simplest/incoming_device_hosts.json").unwrap();
         let incoming_device_hosts_vec: Vec<DeviceHost> =
             serde_json::from_str(&device_hosts_from_json).unwrap();
 
-        let devices_from_json = fs::read_to_string("./fixtures/simplest_db_devices.json").unwrap();
+        let devices_from_json = fs::read_to_string("./fixtures/simplest/db_devices.json").unwrap();
         let db_devices: BTreeMap<_, _> = serde_json::from_str(&devices_from_json).unwrap();
 
         let device_hosts_from_json =
-            fs::read_to_string("./fixtures/simplest_db_device_hosts.json").unwrap();
+            fs::read_to_string("./fixtures/simplest/db_device_hosts.json").unwrap();
         let db_device_hosts_vec: Vec<DeviceHost> =
             serde_json::from_str(&device_hosts_from_json).unwrap();
 
