@@ -556,7 +556,8 @@ mod test {
         .into_iter()
         .map(|x| (x.id.clone(), x))
         .collect();
-        let incoming_device_hosts = vec![
+
+        let incoming_device_hosts_vec = vec![
             DeviceHost {
                 device_id: DeviceId("a".into()),
                 fqdn: Fqdn("oss1".into()),
@@ -632,10 +633,8 @@ mod test {
                 fs_label: Some("some_label".into()),
                 fs_uuid: Some("some_uuid".into()),
             },
-        ]
-        .into_iter()
-        .map(|x| ((x.device_id.clone(), x.fqdn.clone()), x))
-        .collect();
+        ];
+
         let db_devices = BTreeMap::new();
         let db_device_hosts = BTreeMap::new();
 
@@ -648,8 +647,13 @@ mod test {
         let json = serde_json::to_string_pretty(&incoming_devices).unwrap();
         fs::write("./fixture_simplest_incoming_devices.json", json).unwrap();
 
-        let json = serde_json::to_string_pretty(&incoming_device_hosts).unwrap();
+        let json = serde_json::to_string_pretty(&incoming_device_hosts_vec).unwrap();
         fs::write("./fixture_simplest_incoming_device_hosts.json", json).unwrap();
+
+        let incoming_device_hosts = incoming_device_hosts_vec
+            .into_iter()
+            .map(|x| ((x.device_id.clone(), x.fqdn.clone()), x))
+            .collect();
 
         let updates = update_virtual_devices(
             &Fqdn("oss1".into()),
