@@ -524,91 +524,29 @@ mod test {
             .map_err(|_err| eprintln!("Unable to set global default subscriber"))
             .unwrap();
 
-        let devices_from_json = fs::read_to_string("./fixtures/simplest_incoming_devices.json").unwrap();
+        let devices_from_json =
+            fs::read_to_string("./fixtures/simplest_incoming_devices.json").unwrap();
         let incoming_devices: BTreeMap<_, _> = serde_json::from_str(&devices_from_json).unwrap();
 
-        let incoming_device_hosts_vec = vec![
-            DeviceHost {
-                device_id: DeviceId("a".into()),
-                fqdn: Fqdn("oss1".into()),
-                local: true,
-                paths: Paths(
-                    vec!["/fake/path/scsi/a"]
-                        .into_iter()
-                        .map(|x| PathBuf::from(x))
-                        .collect(),
-                ),
-                mount_path: MountPath(Some("/fake/path/scsi/a".into())),
-                fs_type: Some("some_fs".into()),
-                fs_label: Some("some_label".into()),
-                fs_uuid: Some("some_uuid".into()),
-            },
-            DeviceHost {
-                device_id: DeviceId("b".into()),
-                fqdn: Fqdn("oss1".into()),
-                local: true,
-                paths: Paths(
-                    vec!["/fake/path/mpath/a"]
-                        .into_iter()
-                        .map(|x| PathBuf::from(x))
-                        .collect(),
-                ),
-                mount_path: MountPath(Some("/fake/path/mpath/a".into())),
-                fs_type: Some("some_fs".into()),
-                fs_label: Some("some_label".into()),
-                fs_uuid: Some("some_uuid".into()),
-            },
-            DeviceHost {
-                device_id: DeviceId("c".into()),
-                fqdn: Fqdn("oss1".into()),
-                local: true,
-                paths: Paths(
-                    vec!["/fake/path/zpool/a"]
-                        .into_iter()
-                        .map(|x| PathBuf::from(x))
-                        .collect(),
-                ),
-                mount_path: MountPath(Some("/fake/path/zpool/a".into())),
-                fs_type: Some("some_fs".into()),
-                fs_label: Some("some_label".into()),
-                fs_uuid: Some("some_uuid".into()),
-            },
-            DeviceHost {
-                device_id: DeviceId("a".into()),
-                fqdn: Fqdn("oss2".into()),
-                local: true,
-                paths: Paths(
-                    vec!["/fake/path/scsi/a"]
-                        .into_iter()
-                        .map(|x| PathBuf::from(x))
-                        .collect(),
-                ),
-                mount_path: MountPath(Some("/fake/path/scsi/a".into())),
-                fs_type: Some("some_fs".into()),
-                fs_label: Some("some_label".into()),
-                fs_uuid: Some("some_uuid".into()),
-            },
-            DeviceHost {
-                device_id: DeviceId("b".into()),
-                fqdn: Fqdn("oss2".into()),
-                local: true,
-                paths: Paths(
-                    vec!["/fake/path/mpath/a"]
-                        .into_iter()
-                        .map(|x| PathBuf::from(x))
-                        .collect(),
-                ),
-                mount_path: MountPath(Some("/fake/path/mpath/a".into())),
-                fs_type: Some("some_fs".into()),
-                fs_label: Some("some_label".into()),
-                fs_uuid: Some("some_uuid".into()),
-            },
-        ];
+        let device_hosts_from_json =
+            fs::read_to_string("./fixtures/simplest_incoming_device_hosts.json").unwrap();
+        let incoming_device_hosts_vec: Vec<DeviceHost> =
+            serde_json::from_str(&device_hosts_from_json).unwrap();
 
-        let db_devices = BTreeMap::new();
-        let db_device_hosts = BTreeMap::new();
+        let devices_from_json = fs::read_to_string("./fixtures/simplest_db_devices.json").unwrap();
+        let db_devices: BTreeMap<_, _> = serde_json::from_str(&devices_from_json).unwrap();
+
+        let device_hosts_from_json =
+            fs::read_to_string("./fixtures/simplest_db_device_hosts.json").unwrap();
+        let db_device_hosts_vec: Vec<DeviceHost> =
+            serde_json::from_str(&device_hosts_from_json).unwrap();
 
         let incoming_device_hosts = incoming_device_hosts_vec
+            .into_iter()
+            .map(|x| ((x.device_id.clone(), x.fqdn.clone()), x))
+            .collect();
+
+        let db_device_hosts = db_device_hosts_vec
             .into_iter()
             .map(|x| ((x.device_id.clone(), x.fqdn.clone()), x))
             .collect();
@@ -617,8 +555,8 @@ mod test {
             &Fqdn("oss1".into()),
             &incoming_devices,
             &incoming_device_hosts,
-            &db_device_hosts,
             &db_devices,
+            &db_device_hosts,
         )
         .await
         .unwrap();
