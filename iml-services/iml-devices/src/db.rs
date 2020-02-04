@@ -514,7 +514,13 @@ pub async fn update_virtual_devices<'a>(
     db_devices: &Devices,
     db_device_hosts: &DeviceHosts,
 ) -> Result<(), ImlDevicesError> {
-    let changes = compute_virtual_device_changes(fqdn, incoming_devices, incoming_device_hosts, db_devices, db_device_hosts)?;
+    let changes = compute_virtual_device_changes(
+        fqdn,
+        incoming_devices,
+        incoming_device_hosts,
+        db_devices,
+        db_device_hosts,
+    )?;
 
     for c in changes {
         match c {
@@ -545,6 +551,7 @@ pub async fn update_virtual_devices<'a>(
 #[cfg(test)]
 mod test {
     use super::*;
+    use ::test_case::test_case;
     use insta::assert_debug_snapshot;
     use std::{fs, path::Path};
     use tracing_subscriber::FmtSubscriber;
@@ -601,10 +608,13 @@ mod test {
             .unwrap();
     }
 
-    #[tokio::test]
-    async fn test_vd_with_shared_parents_added_to_oss2() {
+    #[test_case("vd_with_shared_parents_added_to_oss2")]
+    #[test_case("vd_with_no_shared_parents_not_added_to_oss2")]
+    #[test_case("vd_with_shared_parents_updated_on_oss2")]
+    #[test_case("vd_with_shared_parents_removed_from_oss2_when_parent_disappears")]
+    fn test_case(test_name: &str) {
         let (incoming_devices, incoming_device_hosts, db_devices, db_device_hosts) =
-            deser_fixture("vd_with_shared_parents_added_to_oss2");
+            deser_fixture(test_name);
 
         let updates = compute_virtual_device_changes(
             &Fqdn("oss1".into()),
@@ -615,60 +625,6 @@ mod test {
         )
         .unwrap();
 
-        assert_debug_snapshot!("vd_with_shared_parents_added_to_oss2", updates);
-    }
-
-    #[tokio::test]
-    async fn test_vd_with_no_shared_parents_not_added_to_oss2() {
-        let (incoming_devices, incoming_device_hosts, db_devices, db_device_hosts) =
-            deser_fixture("vd_with_no_shared_parents_not_added_to_oss2");
-
-        let updates = compute_virtual_device_changes(
-            &Fqdn("oss1".into()),
-            &incoming_devices,
-            &incoming_device_hosts,
-            &db_devices,
-            &db_device_hosts,
-        )
-        .unwrap();
-
-        assert_debug_snapshot!("vd_with_no_shared_parents_not_added_to_oss2", updates);
-    }
-
-    #[tokio::test]
-    async fn test_vd_with_shared_parents_updated_on_oss2() {
-        let (incoming_devices, incoming_device_hosts, db_devices, db_device_hosts) =
-            deser_fixture("vd_with_shared_parents_updated_on_oss2");
-
-        let updates = compute_virtual_device_changes(
-            &Fqdn("oss1".into()),
-            &incoming_devices,
-            &incoming_device_hosts,
-            &db_devices,
-            &db_device_hosts,
-        )
-        .unwrap();
-
-        assert_debug_snapshot!("vd_with_shared_parents_updated_on_oss2", updates);
-    }
-
-    #[tokio::test]
-    async fn test_vd_with_shared_parents_removed_from_oss2_when_parent_disappears() {
-        let (incoming_devices, incoming_device_hosts, db_devices, db_device_hosts) =
-            deser_fixture("vd_with_shared_parents_removed_from_oss2_when_parent_disappears");
-
-        let updates = compute_virtual_device_changes(
-            &Fqdn("oss1".into()),
-            &incoming_devices,
-            &incoming_device_hosts,
-            &db_devices,
-            &db_device_hosts,
-        )
-        .unwrap();
-
-        assert_debug_snapshot!(
-            "vd_with_shared_parents_removed_from_oss2_when_parent_disappears",
-            updates
-        );
+        assert_debug_snapshot!(test_name, updates);
     }
 }
