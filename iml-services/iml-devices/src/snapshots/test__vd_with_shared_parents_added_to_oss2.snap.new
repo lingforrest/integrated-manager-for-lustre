@@ -45,7 +45,7 @@ expression: updates
         Fqdn(
             "oss2",
         ),
-    ): Update(
+    ): Add(
         DeviceHost {
             device_id: DeviceId(
                 "c",

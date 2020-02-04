@@ -417,9 +417,6 @@ pub async fn update_virtual_devices<'a>(
                     if db_device_hosts
                         .get(&(virtual_device.id.clone(), other_host.fqdn.clone()))
                         .is_none()
-                        && results
-                            .get(&(virtual_device.id.clone(), other_host.fqdn.clone()))
-                            .is_none()
                     {
                         tracing::info!(
                             "Adding new device host with id {:?} to host {:?}",
