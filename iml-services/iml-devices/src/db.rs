@@ -629,6 +629,7 @@ mod test {
     }
 
     #[test_case("local_device_hosts_persisted_on_clean_db")]
+    #[test_case("db_device_hosts_updated")]
     fn get_changes_values(test_case: &str) {
         let (_, incoming_device_hosts, _, db_device_hosts) = deser_fixture(test_case);
         let fqdn = Fqdn("oss1".into());
