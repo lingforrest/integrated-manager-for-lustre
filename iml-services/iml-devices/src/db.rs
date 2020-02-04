@@ -511,11 +511,6 @@ pub async fn update_virtual_devices<'a>(
 
 #[cfg(test)]
 mod test {
-// Current issues:
-// 1. Multiple updates for single device host
-// 2. No removal of device hosts
-// 3. Repetitive code of tests
-
     use super::*;
     use insta::assert_debug_snapshot;
     use std::{fs, path::Path};
