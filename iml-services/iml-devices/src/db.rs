@@ -372,9 +372,8 @@ pub async fn update_virtual_devices<'a>(
 
     for virtual_device in incoming_devices.values() {
         tracing::info!("virtual_device: {:#?}", virtual_device);
-        let virtual_device_host = incoming_device_hosts
-            .get(&(virtual_device.id.clone(), fqdn.clone()))
-            .or_else(|| db_device_hosts.get(&(virtual_device.id.clone(), fqdn.clone())));
+        let virtual_device_host =
+            incoming_device_hosts.get(&(virtual_device.id.clone(), fqdn.clone()));
         tracing::info!("virtual_device_host: {:#?}", virtual_device_host);
 
         let mut parents = virtual_device.parents.clone();
@@ -388,15 +387,9 @@ pub async fn update_virtual_devices<'a>(
             let mut new_parents = BTreeSet::new();
 
             for parent in parents.iter() {
-                let other_hosts: Vec<_> = filter_device_hosts(&parent, &incoming_device_hosts)
+                let other_hosts = filter_device_hosts(&parent, &incoming_device_hosts)
                     .filter(|(_, v)| &v.fqdn != fqdn)
-                    .map(|(_, v)| v)
-                    .chain(
-                        filter_device_hosts(&parent, &db_device_hosts)
-                            .filter(|(_, v)| &v.fqdn != fqdn)
-                            .map(|(_, v)| v),
-                    )
-                    .collect();
+                    .map(|(_, v)| v);
 
                 for other_host in other_hosts {
                     let other_device_host = DeviceHost {
@@ -439,7 +432,7 @@ pub async fn update_virtual_devices<'a>(
                         results.push(Change::Add(other_device_host));
                     } else {
                         tracing::info!(
-                            "Updating device host with id {:?} to host {:?}",
+                            "Updating device host with id {:?} on host {:?}",
                             virtual_device.id,
                             other_host.fqdn
                         );
@@ -453,7 +446,7 @@ pub async fn update_virtual_devices<'a>(
                     if let Some(d) = device {
                         let parents = &d.parents;
                         for parent in parents.iter() {
-                            if db_device_hosts
+                            if incoming_device_hosts
                                 .get(&(parent.clone(), db_host.fqdn.clone()))
                                 .is_none()
                                 && transaction_device_hosts
@@ -474,7 +467,7 @@ pub async fn update_virtual_devices<'a>(
                                 };
 
                                 tracing::info!(
-                                    "Removing device host with id {:?} to host {:?}",
+                                    "Removing device host with id {:?} on host {:?}",
                                     virtual_device.id,
                                     other_device_host.fqdn
                                 );
@@ -637,6 +630,9 @@ mod test {
         .await
         .unwrap();
 
-        assert_debug_snapshot!("vd_with_shared_parents_removed_from_oss2_when_parent_disappears", updates);
+        assert_debug_snapshot!(
+            "vd_with_shared_parents_removed_from_oss2_when_parent_disappears",
+            updates
+        );
     }
 }

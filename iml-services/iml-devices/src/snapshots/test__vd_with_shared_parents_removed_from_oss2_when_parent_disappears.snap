@@ -3,7 +3,7 @@ source: iml-services/iml-devices/src/db.rs
 expression: updates
 ---
 [
-    Update(
+    Remove(
         DeviceHost {
             device_id: DeviceId(
                 "b",
@@ -13,25 +13,17 @@ expression: updates
             ),
             local: true,
             paths: Paths(
-                {
-                    "/fake/path/mpath/a",
-                },
+                {},
             ),
             mount_path: MountPath(
                 None,
             ),
-            fs_type: Some(
-                "some_fs",
-            ),
-            fs_label: Some(
-                "some_label",
-            ),
-            fs_uuid: Some(
-                "some_uuid",
-            ),
+            fs_type: None,
+            fs_label: None,
+            fs_uuid: None,
         },
     ),
-    Add(
+    Remove(
         DeviceHost {
             device_id: DeviceId(
                 "c",
@@ -41,25 +33,17 @@ expression: updates
             ),
             local: true,
             paths: Paths(
-                {
-                    "/fake/path/zpool/a",
-                },
+                {},
             ),
             mount_path: MountPath(
                 None,
             ),
-            fs_type: Some(
-                "some_fs",
-            ),
-            fs_label: Some(
-                "some_label",
-            ),
-            fs_uuid: Some(
-                "some_uuid",
-            ),
+            fs_type: None,
+            fs_label: None,
+            fs_uuid: None,
         },
     ),
-    Update(
+    Remove(
         DeviceHost {
             device_id: DeviceId(
                 "c",
@@ -69,22 +53,14 @@ expression: updates
             ),
             local: true,
             paths: Paths(
-                {
-                    "/fake/path/zpool/a",
-                },
+                {},
             ),
             mount_path: MountPath(
                 None,
             ),
-            fs_type: Some(
-                "some_fs",
-            ),
-            fs_label: Some(
-                "some_label",
-            ),
-            fs_uuid: Some(
-                "some_uuid",
-            ),
+            fs_type: None,
+            fs_label: None,
+            fs_uuid: None,
         },
     ),
 ]
