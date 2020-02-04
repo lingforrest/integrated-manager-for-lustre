@@ -627,4 +627,16 @@ mod test {
 
         assert_debug_snapshot!(test_name, updates);
     }
+
+    #[test]
+    fn local_device_hosts_persisted_on_clean_db() {
+        let (_, incoming_device_hosts, _, db_device_hosts) =
+            deser_fixture("local_device_hosts_persisted_on_clean_db");
+        let fqdn = Fqdn("oss1".into());
+        let local_db_device_hosts = get_local_device_hosts(&db_device_hosts, &fqdn);
+
+        let t = incoming_device_hosts.iter().collect();
+        let changes = change::get_changes_values(&local_db_device_hosts, &t);
+        assert_debug_snapshot!("local_device_hosts_persisted_on_clean_db", changes);
+    }
 }
