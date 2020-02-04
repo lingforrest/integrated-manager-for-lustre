@@ -612,11 +612,11 @@ mod test {
     #[test_case("vd_with_no_shared_parents_not_added_to_oss2")]
     #[test_case("vd_with_shared_parents_updated_on_oss2")]
     #[test_case("vd_with_shared_parents_removed_from_oss2_when_parent_disappears")]
-    fn test_case(test_name: &str) {
+    fn compute_virtual_device_changes(test_name: &str) {
         let (incoming_devices, incoming_device_hosts, db_devices, db_device_hosts) =
             deser_fixture(test_name);
 
-        let updates = compute_virtual_device_changes(
+        let updates = super::compute_virtual_device_changes(
             &Fqdn("oss1".into()),
             &incoming_devices,
             &incoming_device_hosts,
