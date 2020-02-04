@@ -360,7 +360,7 @@ pub async fn update_virtual_devices<'a>(
     incoming_device_hosts: &DeviceHosts,
     db_devices: &Devices,
     db_device_hosts: &DeviceHosts,
-) -> Result<Vec<Change<DeviceHost>>, ImlDevicesError> {
+) -> Result<BTreeMap<(DeviceId, Fqdn), Change<DeviceHost>>, ImlDevicesError> {
     tracing::info!(
         "Incoming: devices: {}, device hosts: {}, Database: devices: {}, device hosts: {}",
         incoming_devices.len(),
@@ -368,7 +368,7 @@ pub async fn update_virtual_devices<'a>(
         db_devices.len(),
         db_device_hosts.len()
     );
-    let mut results = Vec::new();
+    let mut results = BTreeMap::new();
 
     for virtual_device in incoming_devices.values() {
         tracing::info!("virtual_device: {:#?}", virtual_device);
@@ -381,7 +381,6 @@ pub async fn update_virtual_devices<'a>(
         let mut depth = 1;
         let max_depth = 8;
 
-        let mut transaction_device_hosts = BTreeSet::new();
         while depth < max_depth {
             tracing::info!("depth = {}, parents = {:#?}", depth, parents);
             let mut new_parents = BTreeSet::new();
@@ -418,7 +417,7 @@ pub async fn update_virtual_devices<'a>(
                     if db_device_hosts
                         .get(&(virtual_device.id.clone(), other_host.fqdn.clone()))
                         .is_none()
-                        && transaction_device_hosts
+                        && results
                             .get(&(virtual_device.id.clone(), other_host.fqdn.clone()))
                             .is_none()
                     {
@@ -427,16 +426,21 @@ pub async fn update_virtual_devices<'a>(
                             virtual_device.id,
                             other_host.fqdn
                         );
-                        transaction_device_hosts
-                            .insert((virtual_device.id.clone(), other_host.fqdn.clone()));
-                        results.push(Change::Add(other_device_host));
+
+                        results.insert(
+                            (virtual_device.id.clone(), other_host.fqdn.clone()),
+                            Change::Add(other_device_host),
+                        );
                     } else {
                         tracing::info!(
                             "Updating device host with id {:?} on host {:?}",
                             virtual_device.id,
                             other_host.fqdn
                         );
-                        results.push(Change::Update(other_device_host));
+                        results.insert(
+                            (virtual_device.id.clone(), other_host.fqdn.clone()),
+                            Change::Update(other_device_host),
+                        );
                     }
                 }
 
@@ -449,7 +453,7 @@ pub async fn update_virtual_devices<'a>(
                             if incoming_device_hosts
                                 .get(&(parent.clone(), db_host.fqdn.clone()))
                                 .is_none()
-                                && transaction_device_hosts
+                                && results
                                     .get(&(parent.clone(), db_host.fqdn.clone()))
                                     .is_none()
                             {
@@ -471,7 +475,10 @@ pub async fn update_virtual_devices<'a>(
                                     virtual_device.id,
                                     other_device_host.fqdn
                                 );
-                                results.push(Change::Remove(other_device_host));
+                                results.insert(
+                                    (virtual_device.id.clone(), db_host.fqdn.clone()),
+                                    Change::Remove(other_device_host),
+                                );
                             }
                         }
                     }
