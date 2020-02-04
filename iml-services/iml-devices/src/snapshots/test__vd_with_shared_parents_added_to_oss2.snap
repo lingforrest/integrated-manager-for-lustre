@@ -2,8 +2,15 @@
 source: iml-services/iml-devices/src/db.rs
 expression: updates
 ---
-[
-    Add(
+{
+    (
+        DeviceId(
+            "b",
+        ),
+        Fqdn(
+            "oss2",
+        ),
+    ): Add(
         DeviceHost {
             device_id: DeviceId(
                 "b",
@@ -31,7 +38,14 @@ expression: updates
             ),
         },
     ),
-    Add(
+    (
+        DeviceId(
+            "c",
+        ),
+        Fqdn(
+            "oss2",
+        ),
+    ): Add(
         DeviceHost {
             device_id: DeviceId(
                 "c",
@@ -59,32 +73,4 @@ expression: updates
             ),
         },
     ),
-    Update(
-        DeviceHost {
-            device_id: DeviceId(
-                "c",
-            ),
-            fqdn: Fqdn(
-                "oss2",
-            ),
-            local: true,
-            paths: Paths(
-                {
-                    "/fake/path/zpool/a",
-                },
-            ),
-            mount_path: MountPath(
-                None,
-            ),
-            fs_type: Some(
-                "some_fs",
-            ),
-            fs_label: Some(
-                "some_label",
-            ),
-            fs_uuid: Some(
-                "some_uuid",
-            ),
-        },
-    ),
-]
+}

@@ -351,10 +351,7 @@ pub async fn persist_local_devices<'a>(
     Ok(())
 }
 
-/// Some devices should appear on multiple hosts even if they are physically existent on one host.
-///
-/// Examples are Zpools / Datasets, LVs / VGs and MdRaid.
-pub async fn update_virtual_devices<'a>(
+fn compute_virtual_device_changes<'a>(
     fqdn: &Fqdn,
     incoming_devices: &Devices,
     incoming_device_hosts: &DeviceHosts,
@@ -506,6 +503,45 @@ pub async fn update_virtual_devices<'a>(
     Ok(results)
 }
 
+/// Some devices should appear on multiple hosts even if they are physically existent on one host.
+///
+/// Examples are Zpools / Datasets, LVs / VGs and MdRaid.
+pub async fn update_virtual_devices<'a>(
+    mut transaction: &mut Transaction<'a>,
+    fqdn: &Fqdn,
+    incoming_devices: &Devices,
+    incoming_device_hosts: &DeviceHosts,
+    db_devices: &Devices,
+    db_device_hosts: &DeviceHosts,
+) -> Result<(), ImlDevicesError> {
+    let changes = compute_virtual_device_changes(fqdn, incoming_devices, incoming_device_hosts, db_devices, db_device_hosts)?;
+
+    for c in changes {
+        match c {
+            (_, Change::Add(d)) => {
+                tracing::debug!(
+                    "Going to insert new devicehost {:?}, {:?}",
+                    d.fqdn,
+                    d.device_id
+                );
+
+                insert_device_host(&mut transaction, &d.fqdn, &d).await?;
+            }
+            (_, Change::Update(d)) => {
+                tracing::debug!("Going to update devicehost {:?}, {:?}", d.fqdn, d.device_id);
+
+                update_device_host(&mut transaction, &d.fqdn, &d).await?;
+            }
+            (_, Change::Remove(d)) => {
+                tracing::debug!("Going to remove devicehost {:?}, {:?}", d.fqdn, d.device_id);
+
+                remove_device_host(&mut transaction, &d.fqdn, &d.device_id).await?;
+            }
+        };
+    }
+    Ok(())
+}
+
 #[cfg(test)]
 mod test {
     use super::*;
@@ -570,14 +606,13 @@ mod test {
         let (incoming_devices, incoming_device_hosts, db_devices, db_device_hosts) =
             deser_fixture("vd_with_shared_parents_added_to_oss2");
 
-        let updates = update_virtual_devices(
+        let updates = compute_virtual_device_changes(
             &Fqdn("oss1".into()),
             &incoming_devices,
             &incoming_device_hosts,
             &db_devices,
             &db_device_hosts,
         )
-        .await
         .unwrap();
 
         assert_debug_snapshot!("vd_with_shared_parents_added_to_oss2", updates);
@@ -588,14 +623,13 @@ mod test {
         let (incoming_devices, incoming_device_hosts, db_devices, db_device_hosts) =
             deser_fixture("vd_with_no_shared_parents_not_added_to_oss2");
 
-        let updates = update_virtual_devices(
+        let updates = compute_virtual_device_changes(
             &Fqdn("oss1".into()),
             &incoming_devices,
             &incoming_device_hosts,
             &db_devices,
             &db_device_hosts,
         )
-        .await
         .unwrap();
 
         assert_debug_snapshot!("vd_with_no_shared_parents_not_added_to_oss2", updates);
@@ -606,14 +640,13 @@ mod test {
         let (incoming_devices, incoming_device_hosts, db_devices, db_device_hosts) =
             deser_fixture("vd_with_shared_parents_updated_on_oss2");
 
-        let updates = update_virtual_devices(
+        let updates = compute_virtual_device_changes(
             &Fqdn("oss1".into()),
             &incoming_devices,
             &incoming_device_hosts,
             &db_devices,
             &db_device_hosts,
         )
-        .await
         .unwrap();
 
         assert_debug_snapshot!("vd_with_shared_parents_updated_on_oss2", updates);
@@ -624,14 +657,13 @@ mod test {
         let (incoming_devices, incoming_device_hosts, db_devices, db_device_hosts) =
             deser_fixture("vd_with_shared_parents_removed_from_oss2_when_parent_disappears");
 
-        let updates = update_virtual_devices(
+        let updates = compute_virtual_device_changes(
             &Fqdn("oss1".into()),
             &incoming_devices,
             &incoming_device_hosts,
             &db_devices,
             &db_device_hosts,
         )
-        .await
         .unwrap();
 
         assert_debug_snapshot!(

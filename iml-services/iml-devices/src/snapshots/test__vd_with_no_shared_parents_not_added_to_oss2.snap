@@ -2,8 +2,15 @@
 source: iml-services/iml-devices/src/db.rs
 expression: updates
 ---
-[
-    Add(
+{
+    (
+        DeviceId(
+            "e",
+        ),
+        Fqdn(
+            "oss2",
+        ),
+    ): Add(
         DeviceHost {
             device_id: DeviceId(
                 "e",
@@ -23,4 +30,4 @@ expression: updates
             fs_uuid: None,
         },
     ),
-]
+}
