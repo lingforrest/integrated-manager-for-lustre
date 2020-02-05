@@ -370,7 +370,17 @@ fn compute_virtual_device_changes<'a>(
     );
     let mut results = BTreeMap::new();
 
-    for virtual_device in incoming_devices.values() {
+    let virtual_devices = incoming_devices
+        .iter()
+        .filter(|(_, d)| {
+            d.device_type == DeviceType::MdRaid
+                || d.device_type == DeviceType::VolumeGroup
+                || d.device_type == DeviceType::Dataset
+                || d.device_type == DeviceType::Zpool
+        })
+        .map(|(_, d)| d);
+
+    for virtual_device in virtual_devices {
         tracing::info!("virtual_device: {:#?}", virtual_device);
         let virtual_device_host =
             incoming_device_hosts.get(&(virtual_device.id.clone(), fqdn.clone()));
