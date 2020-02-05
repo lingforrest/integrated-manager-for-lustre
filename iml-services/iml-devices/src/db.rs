@@ -354,6 +354,57 @@ pub async fn persist_local_devices<'a>(
     Ok(())
 }
 
+struct BreadthFirstIterator<'a, 'b> {
+    devices: &'a Devices,
+    device_id: &'b DeviceId,
+    device: &'a Device,
+    parents: DeviceIds,
+    next_parents: DeviceIds,
+    current: usize,
+}
+
+impl<'a, 'b> BreadthFirstIterator<'a, 'b> {
+    fn new(devices: &'a Devices, device_id: &'b DeviceId) -> Self {
+        let device = &devices[device_id];
+
+        Self {
+            devices,
+            device_id,
+            device,
+            parents: DeviceIds(device.parents.clone()),
+            next_parents: DeviceIds(BTreeSet::new()),
+            current: 0,
+        }
+    }
+}
+
+impl<'a, 'b> Iterator for BreadthFirstIterator<'a, 'b> {
+    type Item = DeviceId;
+
+    fn next(&mut self) -> Option<DeviceId> {
+        if self.parents.is_empty() {
+            return None;
+        }
+
+        let p = self.parents.iter().next().unwrap().clone();
+        let parent_device = &self.devices[&p];
+        let parent_parents = &parent_device.parents;
+
+        for pp in parent_parents.iter() {
+            self.next_parents.insert(pp.clone());
+        }
+
+        self.parents.remove(&p);
+
+        if self.parents.is_empty() {
+            self.parents = DeviceIds(self.next_parents.clone());
+            self.next_parents = DeviceIds(BTreeSet::new());
+        }
+
+        Some(p)
+    }
+}
+
 fn compute_virtual_device_changes<'a>(
     fqdn: &Fqdn,
     incoming_devices: &Devices,

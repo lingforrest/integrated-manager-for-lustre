@@ -1,5 +1,5 @@
 use crate::{Fqdn, Label};
-use std::{collections::BTreeSet, fmt, ops::Deref, path::PathBuf};
+use std::{collections::BTreeSet, fmt, ops::{Deref, DerefMut}, path::PathBuf};
 
 #[cfg(feature = "postgres-interop")]
 use bytes::BytesMut;
@@ -651,6 +651,12 @@ impl Deref for DeviceIds {
 
     fn deref(&self) -> &Self::Target {
         &self.0
+    }
+}
+
+impl DerefMut for DeviceIds {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
     }
 }
 
