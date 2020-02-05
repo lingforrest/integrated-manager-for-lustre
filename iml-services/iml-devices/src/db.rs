@@ -457,12 +457,22 @@ fn compute_virtual_device_changes<'a>(
                     if let Some(d) = device {
                         let parents = &d.parents;
                         for parent in parents.iter() {
+                            let change_in_flight =
+                                results.get(&(parent.clone(), db_host.fqdn.clone()));
+                            let going_to_be_removed = change_in_flight
+                                .map(|c| {
+                                    if let Change::Remove(_) = c {
+                                        true
+                                    } else {
+                                        false
+                                    }
+                                })
+                                .unwrap_or(false);
+
                             if incoming_device_hosts
                                 .get(&(parent.clone(), db_host.fqdn.clone()))
                                 .is_none()
-                                && results
-                                    .get(&(parent.clone(), db_host.fqdn.clone()))
-                                    .is_none()
+                                && !going_to_be_removed
                             {
                                 let other_device_host = DeviceHost {
                                     device_id: virtual_device.id.clone(),
@@ -586,9 +596,18 @@ mod test {
             .collect()
     }
 
+    fn deser_fqdn<P>(path: P) -> Fqdn
+    where
+        P: AsRef<Path>,
+    {
+        let fqdn_from_json = fs::read_to_string(path).unwrap();
+        serde_json::from_str(&fqdn_from_json).unwrap()
+    }
+
     fn deser_fixture(
         test_name: &str,
     ) -> (
+        Fqdn,
         BTreeMap<DeviceId, Device>,
         BTreeMap<(DeviceId, Fqdn), DeviceHost>,
         BTreeMap<DeviceId, Device>,
@@ -596,14 +615,17 @@ mod test {
     ) {
         let prefix = String::from("fixtures/") + test_name + "/";
 
+        let fqdn = deser_fqdn(prefix.clone() + "fqdn.json");
+
         let incoming_devices = deser_devices(prefix.clone() + "incoming_devices.json");
         let db_devices = deser_devices(prefix.clone() + "db_devices.json");
 
         let incoming_device_hosts =
             deser_device_hosts(prefix.clone() + "incoming_device_hosts.json");
-        let db_device_hosts = deser_device_hosts(prefix + "db_device_hosts.json");
+        let db_device_hosts = deser_device_hosts(prefix.clone() + "db_device_hosts.json");
 
         (
+            fqdn,
             incoming_devices,
             incoming_device_hosts,
             db_devices,
@@ -624,11 +646,11 @@ mod test {
     #[test_case("vd_with_shared_parents_updated_on_oss2")]
     #[test_case("vd_with_shared_parents_removed_from_oss2_when_parent_disappears")]
     fn compute_virtual_device_changes(test_name: &str) {
-        let (incoming_devices, incoming_device_hosts, db_devices, db_device_hosts) =
+        let (fqdn, incoming_devices, incoming_device_hosts, db_devices, db_device_hosts) =
             deser_fixture(test_name);
 
         let updates = super::compute_virtual_device_changes(
-            &Fqdn("oss1".into()),
+            &fqdn,
             &incoming_devices,
             &incoming_device_hosts,
             &db_devices,
@@ -642,8 +664,7 @@ mod test {
     #[test_case("local_device_hosts_persisted_on_clean_db")]
     #[test_case("db_device_hosts_updated")]
     fn get_changes_values(test_case: &str) {
-        let (_, incoming_device_hosts, _, db_device_hosts) = deser_fixture(test_case);
-        let fqdn = Fqdn("oss1".into());
+        let (fqdn, _, incoming_device_hosts, _, db_device_hosts) = deser_fixture(test_case);
         let local_db_device_hosts = get_local_device_hosts(&db_device_hosts, &fqdn);
 
         let t = incoming_device_hosts.iter().collect();

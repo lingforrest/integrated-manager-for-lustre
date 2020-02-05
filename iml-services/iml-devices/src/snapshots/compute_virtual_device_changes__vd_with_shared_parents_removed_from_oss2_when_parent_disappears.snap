@@ -5,18 +5,18 @@ expression: updates
 {
     (
         DeviceId(
-            "b",
+            "c",
         ),
         Fqdn(
-            "oss2",
+            "oss1",
         ),
-    ): Remove(
+    ): Update(
         DeviceHost {
             device_id: DeviceId(
-                "b",
+                "c",
             ),
             fqdn: Fqdn(
-                "oss2",
+                "oss1",
             ),
             local: true,
             paths: Paths(
