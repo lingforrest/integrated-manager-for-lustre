@@ -731,6 +731,7 @@ mod test {
     #[test_case("single_parent_produces_one_item", "b")]
     #[test_case("two_parents_produce_two_items", "c")]
     #[test_case("parent_and_double_parent_produce_three_items", "c1")]
+    #[test_case("triple_parent_and_double_parent_produce_five_items", "c1")]
     fn breadth_first_iterator(test_case: &str, child: &str) {
         let prefix = String::from("fixtures/") + test_case + "/";
         let devices = deser_devices(prefix.clone() + "devices.json");
