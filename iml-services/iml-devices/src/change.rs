@@ -98,3 +98,21 @@ pub fn get_changes<
 
     to_change.chain(to_remove).chain(to_add).collect()
 }
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use insta::*;
+
+    #[test]
+    fn equal_maps_produce_no_changes() {
+        let old: BTreeMap<isize, isize> = vec![(1, 1), (2, 2), (3, 3)].into_iter().collect();
+        let new: BTreeMap<isize, isize> = vec![(1, 1), (2, 2), (3, 3)].into_iter().collect();
+        let old = &old.iter().collect();
+        let new = &new.iter().collect();
+
+        let changes = get_changes_values(old, new);
+
+        assert_debug_snapshot!("equal_maps_produce_no_changes", changes);
+    }
+}
