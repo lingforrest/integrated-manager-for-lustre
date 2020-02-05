@@ -20,41 +20,22 @@ expression: updates
             ),
             local: true,
             paths: Paths(
-                {},
+                {
+                    "/fake/path/zpool/a",
+                },
             ),
             mount_path: MountPath(
                 None,
             ),
-            fs_type: None,
-            fs_label: None,
-            fs_uuid: None,
-        },
-    ),
-    (
-        DeviceId(
-            "c",
-        ),
-        Fqdn(
-            "oss2",
-        ),
-    ): Remove(
-        DeviceHost {
-            device_id: DeviceId(
-                "c",
+            fs_type: Some(
+                "some_fs",
             ),
-            fqdn: Fqdn(
-                "oss2",
+            fs_label: Some(
+                "some_label",
             ),
-            local: true,
-            paths: Paths(
-                {},
+            fs_uuid: Some(
+                "some_uuid",
             ),
-            mount_path: MountPath(
-                None,
-            ),
-            fs_type: None,
-            fs_label: None,
-            fs_uuid: None,
         },
     ),
 }
