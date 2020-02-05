@@ -253,7 +253,10 @@ pub async fn persist_local_device_hosts<'a>(
     incoming_device_hosts: &DeviceHosts,
     local_db_device_hosts: &DeviceHostsRef<'_>,
 ) -> Result<(), ImlDevicesError> {
-    for c in change::get_changes_values(local_db_device_hosts, &incoming_device_hosts.iter().collect()) {
+    for c in change::get_changes_values(
+        local_db_device_hosts,
+        &incoming_device_hosts.iter().collect(),
+    ) {
         match c {
             Change::Add(d) => {
                 tracing::debug!(
