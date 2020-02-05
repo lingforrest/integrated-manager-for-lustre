@@ -47,13 +47,26 @@
       "c2"
     ]
   },
+  "b3": {
+    "id": "b3",
+    "size": 1,
+    "usable_for_lustre": false,
+    "device_type": "Mpath",
+    "parents": [
+      "a1",
+      "a2"
+    ],
+    "children": [
+      "c2"
+    ]
+  },
   "c1": {
     "id": "c1",
     "size": 1,
     "usable_for_lustre": false,
     "device_type": "Zpool",
     "parents": [
-      "b1"
+      "b1", "b2", "b3"
     ],
     "children": []
   },

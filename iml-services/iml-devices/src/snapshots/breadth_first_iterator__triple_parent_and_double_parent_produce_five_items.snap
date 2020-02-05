@@ -7,6 +7,12 @@ expression: result
         "b1",
     ),
     DeviceId(
+        "b2",
+    ),
+    DeviceId(
+        "b3",
+    ),
+    DeviceId(
         "a1",
     ),
     DeviceId(
