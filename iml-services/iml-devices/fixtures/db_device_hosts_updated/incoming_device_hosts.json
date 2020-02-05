@@ -24,37 +24,13 @@
     "fs_uuid": "some_uuid"
   },
   {
-    "device_id": "c",
+    "device_id": "d",
     "fqdn": "oss1",
     "local": true,
     "paths": [
       "/fake/path/zpool/a"
     ],
     "mount_path": "/fake/path/zpool/a",
-    "fs_type": "some_fs",
-    "fs_label": "some_label",
-    "fs_uuid": "some_uuid"
-  },
-  {
-    "device_id": "a",
-    "fqdn": "oss2",
-    "local": true,
-    "paths": [
-      "/fake/path/scsi/a"
-    ],
-    "mount_path": "/fake/path/scsi/a",
-    "fs_type": "some_fs",
-    "fs_label": "some_label",
-    "fs_uuid": "some_uuid"
-  },
-  {
-    "device_id": "d",
-    "fqdn": "oss2",
-    "local": true,
-    "paths": [
-      "/fake/path/scsi/d"
-    ],
-    "mount_path": "/fake/path/scsi/d",
     "fs_type": "some_fs",
     "fs_label": "some_label",
     "fs_uuid": "some_uuid"
