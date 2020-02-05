@@ -383,7 +383,7 @@ impl<'a, 'b> Iterator for BreadthFirstIterator<'a, 'b> {
         }
 
         let p = self.parents.iter().next().unwrap().clone();
-        let parent_device = &self.devices[dbg!(&p)];
+        let parent_device = &self.devices[&p];
         let parent_parents = &parent_device.parents;
 
         for pp in parent_parents.iter() {
