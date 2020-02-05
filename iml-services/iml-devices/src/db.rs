@@ -435,8 +435,26 @@ fn compute_virtual_device_changes<'a>(
 
         let mut parents = virtual_device.parents.clone();
 
+        let all_other_hosts: BTreeSet<_> = incoming_device_hosts
+            .iter()
+            .map(|((_, fqdn), _)| fqdn)
+            .collect();
+
         let mut depth = 1;
         let max_depth = 8;
+
+        for host in all_other_hosts {
+            let mut i = BreadthFirstIterator::new(incoming_devices, &virtual_device.id);
+            let all_available = i.all(|p| incoming_device_hosts.get(&(p, host.clone())).is_some());
+            if all_available {
+                // add to database if missing and not in flight
+                // update in database if present and not in flight
+                // update in flight if in flight
+            } else {
+                // remove from db if present and not in flight
+                // remove from in-flight if in flight
+            }
+        }
 
         while depth < max_depth {
             tracing::info!("depth = {}, parents = {:#?}", depth, parents);
