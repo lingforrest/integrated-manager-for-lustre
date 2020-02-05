@@ -433,156 +433,126 @@ fn compute_virtual_device_changes<'a>(
             incoming_device_hosts.get(&(virtual_device.id.clone(), fqdn.clone()));
         tracing::info!("virtual_device_host: {:#?}", virtual_device_host);
 
-        let mut parents = virtual_device.parents.clone();
-
-        let all_other_hosts: BTreeSet<_> = incoming_device_hosts
+        let all_other_host_fqdns: BTreeSet<_> = incoming_device_hosts
             .iter()
-            .map(|((_, fqdn), _)| fqdn)
+            .chain(db_device_hosts.iter())
+            .filter_map(|((_, f), _)| if f != fqdn { Some(f) } else { None })
             .collect();
 
-        let mut depth = 1;
-        let max_depth = 8;
-
-        for host in all_other_hosts {
+        for host in all_other_host_fqdns {
             let mut i = BreadthFirstIterator::new(incoming_devices, &virtual_device.id);
-            let all_available = i.all(|p| incoming_device_hosts.get(&(p, host.clone())).is_some());
+            let all_available = i.all(|p| {
+                let result = db_device_hosts.get(&(p.clone(), host.clone())).is_some();
+                tracing::info!("Checking device {:?} on host {:?}: {:?}", p, host, result);
+                result
+            });
+            tracing::info!(
+                "Host: {:#?}, device: {:#?}, all_available: {:?}",
+                host,
+                virtual_device.id,
+                all_available
+            );
             if all_available {
+                let other_device_host = DeviceHost {
+                    device_id: virtual_device.id.clone(),
+                    fqdn: host.clone(),
+                    local: true,
+                    // Does it make sense to use paths from other hosts?
+                    paths: Paths(
+                        virtual_device_host
+                            .map(|x| x.paths.clone())
+                            .unwrap_or(BTreeSet::new()),
+                    ),
+                    // It can't be mounted on other hosts at the time this is processed?
+                    mount_path: MountPath(None),
+                    fs_type: virtual_device_host
+                        .map(|x| x.fs_type.clone())
+                        .unwrap_or(None),
+                    fs_label: virtual_device_host
+                        .map(|x| x.fs_label.clone())
+                        .unwrap_or(None),
+                    fs_uuid: virtual_device_host
+                        .map(|x| x.fs_uuid.clone())
+                        .unwrap_or(None),
+                };
+
                 // add to database if missing and not in flight
                 // update in database if present and not in flight
-                // update in flight if in flight
+                // update in flight if in flight - is it necessary though?
+
+                if db_device_hosts
+                    .get(&(virtual_device.id.clone(), host.clone()))
+                    .is_none()
+                    && results
+                        .get(&(virtual_device.id.clone(), host.clone()))
+                        .is_none()
+                {
+                    tracing::info!(
+                        "Adding new device host with id {:?} to host {:?}",
+                        virtual_device.id,
+                        host
+                    );
+
+                    results.insert(
+                        (virtual_device.id.clone(), host.clone()),
+                        Change::Add(other_device_host),
+                    );
+                } else if db_device_hosts
+                    .get(&(virtual_device.id.clone(), host.clone()))
+                    .is_some()
+                    && results
+                        .get(&(virtual_device.id.clone(), host.clone()))
+                        .is_none()
+                {
+                    tracing::info!(
+                        "Updating device host with id {:?} on host {:?}",
+                        virtual_device.id,
+                        host
+                    );
+                    results.insert(
+                        (virtual_device.id.clone(), host.clone()),
+                        Change::Update(other_device_host),
+                    );
+                } else if results
+                    .get(&(virtual_device.id.clone(), host.clone()))
+                    .is_some()
+                {
+                    unreachable!();
+                } else {
+                    unreachable!();
+                }
             } else {
                 // remove from db if present and not in flight
-                // remove from in-flight if in flight
-            }
-        }
+                // remove from in-flight if in flight - is it necessary though?
 
-        while depth < max_depth {
-            tracing::info!("depth = {}, parents = {:#?}", depth, parents);
-            let mut new_parents = BTreeSet::new();
-
-            for parent in parents.iter() {
-                let other_hosts = filter_device_hosts(&parent, &incoming_device_hosts)
-                    .filter(|(_, v)| &v.fqdn != fqdn)
-                    .map(|(_, v)| v);
-
-                for other_host in other_hosts {
+                if db_device_hosts
+                    .get(&(virtual_device.id.clone(), host.clone()))
+                    .is_some()
+                {
                     let other_device_host = DeviceHost {
                         device_id: virtual_device.id.clone(),
-                        fqdn: other_host.fqdn.clone(),
+                        fqdn: host.clone(),
                         local: true,
-                        // Does it make sense to use paths from other hosts?
-                        paths: Paths(
-                            virtual_device_host
-                                .map(|x| x.paths.clone())
-                                .unwrap_or(BTreeSet::new()),
-                        ),
-                        // It can't be mounted on other hosts at the time this is processed?
+                        paths: Paths(BTreeSet::new()),
                         mount_path: MountPath(None),
-                        fs_type: virtual_device_host
-                            .map(|x| x.fs_type.clone())
-                            .unwrap_or(None),
-                        fs_label: virtual_device_host
-                            .map(|x| x.fs_label.clone())
-                            .unwrap_or(None),
-                        fs_uuid: virtual_device_host
-                            .map(|x| x.fs_uuid.clone())
-                            .unwrap_or(None),
+                        fs_type: None,
+                        fs_label: None,
+                        fs_uuid: None,
                     };
 
-                    if db_device_hosts
-                        .get(&(virtual_device.id.clone(), other_host.fqdn.clone()))
-                        .is_none()
-                    {
-                        tracing::info!(
-                            "Adding new device host with id {:?} to host {:?}",
-                            virtual_device.id,
-                            other_host.fqdn
-                        );
-
-                        results.insert(
-                            (virtual_device.id.clone(), other_host.fqdn.clone()),
-                            Change::Add(other_device_host),
-                        );
-                    } else {
-                        tracing::info!(
-                            "Updating device host with id {:?} on host {:?}",
-                            virtual_device.id,
-                            other_host.fqdn
-                        );
-                        results.insert(
-                            (virtual_device.id.clone(), other_host.fqdn.clone()),
-                            Change::Update(other_device_host),
-                        );
-                    }
+                    tracing::info!(
+                        "Removing device host with id {:?} on host {:?}",
+                        virtual_device.id,
+                        host,
+                    );
+                    results.insert(
+                        (virtual_device.id.clone(), host.clone()),
+                        Change::Remove(other_device_host),
+                    );
+                } else {
+                    // It wasn't in the DB in the first place, nothing to do
                 }
-
-                for (id, db_host) in db_device_hosts {
-                    let &(ref device_id, _) = id;
-                    let device = incoming_devices.get(device_id);
-                    if let Some(d) = device {
-                        let parents = &d.parents;
-                        for parent in parents.iter() {
-                            let change_in_flight =
-                                results.get(&(parent.clone(), db_host.fqdn.clone()));
-                            let going_to_be_removed = change_in_flight
-                                .map(|c| {
-                                    if let Change::Remove(_) = c {
-                                        true
-                                    } else {
-                                        false
-                                    }
-                                })
-                                .unwrap_or(false);
-
-                            if incoming_device_hosts
-                                .get(&(parent.clone(), db_host.fqdn.clone()))
-                                .is_none()
-                                && !going_to_be_removed
-                            {
-                                let other_device_host = DeviceHost {
-                                    device_id: virtual_device.id.clone(),
-                                    fqdn: db_host.fqdn.clone(),
-                                    local: true,
-                                    paths: Paths(BTreeSet::new()),
-                                    mount_path: MountPath(None),
-                                    fs_type: None,
-                                    fs_label: None,
-                                    fs_uuid: None,
-                                };
-
-                                tracing::info!(
-                                    "Removing device host with id {:?} on host {:?}",
-                                    virtual_device.id,
-                                    other_device_host.fqdn
-                                );
-                                results.insert(
-                                    (virtual_device.id.clone(), db_host.fqdn.clone()),
-                                    Change::Remove(other_device_host),
-                                );
-                            }
-                        }
-                    }
-                }
-
-                incoming_devices
-                    .get(parent)
-                    .or_else(|| db_devices.get(parent))
-                    .map(|x| {
-                        for p in x.parents.iter() {
-                            new_parents.insert(p.clone());
-                        }
-                    });
             }
-
-            if new_parents.is_empty() {
-                break;
-            }
-            parents = new_parents;
-            depth += 1;
-        }
-
-        if depth == max_depth {
-            tracing::error!("Hit upper limit {} on recursion", max_depth);
         }
     }
 
@@ -719,6 +689,7 @@ mod test {
     #[test_case("vd_with_shared_parents_updated_on_oss2")]
     #[test_case("vd_with_shared_parents_removed_from_oss2_when_parent_disappears")]
     fn compute_virtual_device_changes(test_name: &str) {
+        _init_subscriber();
         let (fqdn, incoming_devices, incoming_device_hosts, db_devices, db_device_hosts) =
             deser_fixture(test_name);
 
