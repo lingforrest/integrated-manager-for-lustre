@@ -383,7 +383,7 @@ impl<'a, 'b> Iterator for BreadthFirstIterator<'a, 'b> {
         }
 
         let p = self.parents.iter().next().unwrap().clone();
-        let parent_device = &self.devices[&p];
+        let parent_device = &self.devices[dbg!(&p)];
         let parent_parents = &parent_device.parents;
 
         for pp in parent_parents.iter() {
@@ -729,6 +729,8 @@ mod test {
 
     #[test_case("single_device_doesnt_iterate", "a")]
     #[test_case("single_parent_produces_one_item", "b")]
+    #[test_case("two_parents_produce_two_items", "c")]
+    #[test_case("parent_and_double_parent_produce_three_items", "c1")]
     fn breadth_first_iterator(test_case: &str, child: &str) {
         let prefix = String::from("fixtures/") + test_case + "/";
         let devices = deser_devices(prefix.clone() + "devices.json");
