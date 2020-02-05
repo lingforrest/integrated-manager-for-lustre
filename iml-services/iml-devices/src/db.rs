@@ -355,25 +355,21 @@ pub async fn persist_local_devices<'a>(
 }
 
 struct BreadthFirstIterator<'a, 'b> {
-    devices: &'a Devices,
-    device_id: &'b DeviceId,
-    device: &'a Device,
-    parents: DeviceIds,
-    next_parents: DeviceIds,
-    current: usize,
+    devices: &'a BTreeMap<DeviceId, Device>,
+    parents: BTreeSet<DeviceId>,
+    next_parents: BTreeSet<DeviceId>,
+    _marker: &'b std::marker::PhantomData<()>,
 }
 
 impl<'a, 'b> BreadthFirstIterator<'a, 'b> {
-    fn new(devices: &'a Devices, device_id: &'b DeviceId) -> Self {
+    fn new(devices: &'a BTreeMap<DeviceId, Device>, device_id: &'b DeviceId) -> Self {
         let device = &devices[device_id];
 
         Self {
             devices,
-            device_id,
-            device,
-            parents: DeviceIds(device.parents.clone()),
-            next_parents: DeviceIds(BTreeSet::new()),
-            current: 0,
+            parents: device.parents.clone(),
+            next_parents: BTreeSet::new(),
+            _marker: &std::marker::PhantomData,
         }
     }
 }
@@ -397,8 +393,8 @@ impl<'a, 'b> Iterator for BreadthFirstIterator<'a, 'b> {
         self.parents.remove(&p);
 
         if self.parents.is_empty() {
-            self.parents = DeviceIds(self.next_parents.clone());
-            self.next_parents = DeviceIds(BTreeSet::new());
+            self.parents = self.next_parents.clone();
+            self.next_parents = BTreeSet::new();
         }
 
         Some(p)
@@ -655,6 +651,14 @@ mod test {
         serde_json::from_str(&fqdn_from_json).unwrap()
     }
 
+    fn deser_parents<P>(path: P) -> BTreeSet<DeviceId>
+    where
+        P: AsRef<Path>,
+    {
+        let parents_from_json = fs::read_to_string(path).unwrap();
+        serde_json::from_str(&parents_from_json).unwrap()
+    }
+
     fn deser_fixture(
         test_name: &str,
     ) -> (
@@ -721,5 +725,17 @@ mod test {
         let t = incoming_device_hosts.iter().collect();
         let changes = change::get_changes_values(&local_db_device_hosts, &t);
         assert_debug_snapshot!(test_case, changes);
+    }
+
+    #[test_case("single_device_doesnt_iterate", "a")]
+    #[test_case("single_parent_produces_one_item", "b")]
+    fn breadth_first_iterator(test_case: &str, child: &str) {
+        let prefix = String::from("fixtures/") + test_case + "/";
+        let devices = deser_devices(prefix.clone() + "devices.json");
+
+        let id = DeviceId(child.into());
+        let i = BreadthFirstIterator::new(&devices, &id);
+        let result: Vec<_> = i.collect();
+        assert_debug_snapshot!(test_case, result);
     }
 }
