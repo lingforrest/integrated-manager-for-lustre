@@ -405,7 +405,7 @@ fn compute_virtual_device_changes<'a>(
                         device_id: virtual_device.id.clone(),
                         fqdn: other_host.fqdn.clone(),
                         local: true,
-                        // Does it make sense to import paths from other hosts?
+                        // Does it make sense to use paths from other hosts?
                         paths: Paths(
                             virtual_device_host
                                 .map(|x| x.paths.clone())
@@ -468,9 +468,7 @@ fn compute_virtual_device_changes<'a>(
                                     device_id: virtual_device.id.clone(),
                                     fqdn: db_host.fqdn.clone(),
                                     local: true,
-                                    // Does it make sense to import paths from other hosts?
                                     paths: Paths(BTreeSet::new()),
-                                    // It can't be mounted on other hosts at the time this is processed?
                                     mount_path: MountPath(None),
                                     fs_type: None,
                                     fs_label: None,
