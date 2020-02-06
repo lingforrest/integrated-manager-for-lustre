@@ -401,6 +401,13 @@ impl<'a, 'b> Iterator for BreadthFirstIterator<'a, 'b> {
     }
 }
 
+fn is_virtual_device(device: &Device) -> bool {
+    device.device_type == DeviceType::MdRaid
+        || device.device_type == DeviceType::VolumeGroup
+        || device.device_type == DeviceType::Dataset
+        || device.device_type == DeviceType::Zpool
+}
+
 fn compute_virtual_device_changes<'a>(
     fqdn: &Fqdn,
     incoming_devices: &Devices,
@@ -419,12 +426,7 @@ fn compute_virtual_device_changes<'a>(
 
     let virtual_devices = incoming_devices
         .iter()
-        .filter(|(_, d)| {
-            d.device_type == DeviceType::MdRaid
-                || d.device_type == DeviceType::VolumeGroup
-                || d.device_type == DeviceType::Dataset
-                || d.device_type == DeviceType::Zpool
-        })
+        .filter(|(_, d)| is_virtual_device(d))
         .map(|(_, d)| d);
 
     for virtual_device in virtual_devices {
@@ -441,7 +443,9 @@ fn compute_virtual_device_changes<'a>(
         {
             let mut i = BreadthFirstIterator::new(incoming_devices, &virtual_device.id);
             let all_available = i.all(|p| {
-                let result = incoming_device_hosts.get(&(p.clone(), fqdn.clone())).is_some();
+                let result = incoming_device_hosts
+                    .get(&(p.clone(), fqdn.clone()))
+                    .is_some();
                 tracing::info!("Checking device {:?} on host {:?}: {:?}", p, fqdn, result);
                 result
             });
