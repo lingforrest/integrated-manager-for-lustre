@@ -126,13 +126,38 @@ fn are_all_parents_available(
     let mut i = BreadthFirstParentIterator::new(devices, child_id);
     let all_available = i.all(|p| {
         let result = device_hosts.get(&(p.clone(), host.clone())).is_some();
+        tracing::info!("Checking device {:?} on host {:?}: {:?}", p, host, result);
+        result
+    });
+    tracing::info!(
+        "Host: {:?}, device: {:?}, all_available: {:?}",
+        host,
+        child_id,
+        all_available
+    );
+    all_available
+}
+
+fn are_all_parents_available_with_results(
+    devices: &Devices,
+    device_hosts: &DeviceHosts,
+    results: &BTreeMap<(DeviceId, Fqdn), Change<DeviceHost>>,
+    host: Fqdn,
+    child_id: &DeviceId,
+) -> bool {
+    let mut i = BreadthFirstParentIterator::new(devices, child_id);
+    let all_available = i.all(|p| {
+        let result = device_hosts.get(&(p.clone(), host.clone())).is_some();
+        tracing::info!("Checking device {:?} on host {:?}: {:?}", p, host, result);
+        let result_results = results.get(&(p.clone(), host.clone())).is_some();
         tracing::info!(
-            "Checking device {:?} on host {:?} in incoming: {:?}",
+            "Checking device {:?} on host {:?} in results: {:?}",
             p,
             host,
-            result
+            result_results
         );
-        result
+
+        result || result_results
     });
     tracing::info!(
         "Host: {:?}, device: {:?}, all_available: {:?}",
@@ -209,29 +234,12 @@ pub fn compute_virtual_device_changes<'a>(
             .collect();
 
         for host in all_other_host_fqdns {
-            let mut i = BreadthFirstParentIterator::new(incoming_devices, &virtual_device.id);
-            let all_available = i.all(|p| {
-                let result_db = db_device_hosts.get(&(p.clone(), host.clone())).is_some();
-                tracing::info!(
-                    "Checking device {:?} on host {:?} in DB: {:?}",
-                    p,
-                    host,
-                    result_db
-                );
-                let result_results = results.get(&(p.clone(), host.clone())).is_some();
-                tracing::info!(
-                    "Checking device {:?} on host {:?} in results: {:?}",
-                    p,
-                    host,
-                    result_db
-                );
-                result_db || result_results
-            });
-            tracing::info!(
-                "Host: {:?}, device: {:?}, all_available: {:?}",
-                host,
-                virtual_device.id,
-                all_available
+            let all_available = are_all_parents_available_with_results(
+                incoming_devices,
+                &db_device_hosts,
+                &results,
+                host.clone(),
+                &virtual_device.id,
             );
             if all_available {
                 // add to database if missing and not in flight
