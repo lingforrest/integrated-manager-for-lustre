@@ -817,7 +817,6 @@ mod test {
     #[test_case("vd_with_shared_parents_updated_on_oss2")]
     #[test_case("vd_with_shared_parents_removed_from_oss2_when_parent_disappears")]
     fn compute_virtual_device_changes(test_name: &str) {
-        _init_subscriber();
         let (fqdn, incoming_devices, incoming_device_hosts, db_devices, db_device_hosts) =
             deser_fixture(test_name);
 
