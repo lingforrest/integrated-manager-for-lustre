@@ -372,6 +372,11 @@ mod test {
     // Its children are getting removed
     // Virtual devices from the other host receive updates that aren't necessary but aren't harmful
     #[test_case("vd_with_two_levels_of_shared_parents_removed_from_oss2_when_parent_disappears")]
+    // A leaf virtual device is replaced with another virtual device on one host
+    // Previous one stays in the DB as available
+    // We're not removing it since parents are still available
+    // Virtual device that is parent of the replaced receives update that isn't necessary but isn't harmful
+    #[test_case("vd_with_two_levels_of_shared_parents_replaced_on_oss2")]
     fn compute_virtual_device_changes(test_name: &str) {
         // crate::db::test::_init_subscriber();
         let (fqdn, incoming_devices, incoming_device_hosts, db_devices, db_device_hosts) =
