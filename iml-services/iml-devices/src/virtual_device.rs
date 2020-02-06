@@ -15,6 +15,48 @@ fn is_virtual_device(device: &Device) -> bool {
         || device.device_type == DeviceType::Zpool
 }
 
+fn make_other_device_host(
+    device_id: DeviceId,
+    fqdn: Fqdn,
+    virtual_device_host: Option<&DeviceHost>,
+) -> DeviceHost {
+    DeviceHost {
+        device_id,
+        fqdn,
+        local: true,
+        // Does it make sense to use paths from other hosts?
+        paths: Paths(
+            virtual_device_host
+                .map(|x| x.paths.clone())
+                .unwrap_or(BTreeSet::new()),
+        ),
+        // It can't be mounted on other hosts at the time this is processed?
+        mount_path: MountPath(None),
+        fs_type: virtual_device_host
+            .map(|x| x.fs_type.clone())
+            .unwrap_or(None),
+        fs_label: virtual_device_host
+            .map(|x| x.fs_label.clone())
+            .unwrap_or(None),
+        fs_uuid: virtual_device_host
+            .map(|x| x.fs_uuid.clone())
+            .unwrap_or(None),
+    }
+}
+
+fn make_other_device_host_for_removal(device_id: DeviceId, fqdn: Fqdn) -> DeviceHost {
+    DeviceHost {
+        device_id,
+        fqdn,
+        local: true,
+        paths: Paths(BTreeSet::new()),
+        mount_path: MountPath(None),
+        fs_type: None,
+        fs_label: None,
+        fs_uuid: None,
+    }
+}
+
 pub fn compute_virtual_device_changes<'a>(
     fqdn: &Fqdn,
     incoming_devices: &Devices,
@@ -69,28 +111,11 @@ pub fn compute_virtual_device_changes<'a>(
                 all_available
             );
             if all_available {
-                let other_device_host = DeviceHost {
-                    device_id: virtual_device.id.clone(),
-                    fqdn: fqdn.clone(),
-                    local: true,
-                    // Does it make sense to use paths from other hosts?
-                    paths: Paths(
-                        virtual_device_host
-                            .map(|x| x.paths.clone())
-                            .unwrap_or(BTreeSet::new()),
-                    ),
-                    // It can't be mounted on other hosts at the time this is processed?
-                    mount_path: MountPath(None),
-                    fs_type: virtual_device_host
-                        .map(|x| x.fs_type.clone())
-                        .unwrap_or(None),
-                    fs_label: virtual_device_host
-                        .map(|x| x.fs_label.clone())
-                        .unwrap_or(None),
-                    fs_uuid: virtual_device_host
-                        .map(|x| x.fs_uuid.clone())
-                        .unwrap_or(None),
-                };
+                let other_device_host = make_other_device_host(
+                    virtual_device.id.clone(),
+                    fqdn.clone(),
+                    virtual_device_host,
+                );
 
                 // add to database if missing and not in flight
                 // update in database if present and not in flight
@@ -164,16 +189,8 @@ pub fn compute_virtual_device_changes<'a>(
                     .get(&(virtual_device.id.clone(), fqdn.clone()))
                     .is_some()
                 {
-                    let other_device_host = DeviceHost {
-                        device_id: virtual_device.id.clone(),
-                        fqdn: fqdn.clone(),
-                        local: true,
-                        paths: Paths(BTreeSet::new()),
-                        mount_path: MountPath(None),
-                        fs_type: None,
-                        fs_label: None,
-                        fs_uuid: None,
-                    };
+                    let other_device_host =
+                        make_other_device_host_for_removal(virtual_device.id.clone(), fqdn.clone());
 
                     tracing::info!(
                         "Removing device host with id {:?} on host {:?}",
@@ -227,28 +244,11 @@ pub fn compute_virtual_device_changes<'a>(
                 all_available
             );
             if all_available {
-                let other_device_host = DeviceHost {
-                    device_id: virtual_device.id.clone(),
-                    fqdn: host.clone(),
-                    local: true,
-                    // Does it make sense to use paths from other hosts?
-                    paths: Paths(
-                        virtual_device_host
-                            .map(|x| x.paths.clone())
-                            .unwrap_or(BTreeSet::new()),
-                    ),
-                    // It can't be mounted on other hosts at the time this is processed?
-                    mount_path: MountPath(None),
-                    fs_type: virtual_device_host
-                        .map(|x| x.fs_type.clone())
-                        .unwrap_or(None),
-                    fs_label: virtual_device_host
-                        .map(|x| x.fs_label.clone())
-                        .unwrap_or(None),
-                    fs_uuid: virtual_device_host
-                        .map(|x| x.fs_uuid.clone())
-                        .unwrap_or(None),
-                };
+                let other_device_host = make_other_device_host(
+                    virtual_device.id.clone(),
+                    host.clone(),
+                    virtual_device_host,
+                );
 
                 // add to database if missing and not in flight
                 // update in database if present and not in flight
@@ -320,16 +320,8 @@ pub fn compute_virtual_device_changes<'a>(
                     .get(&(virtual_device.id.clone(), host.clone()))
                     .is_some()
                 {
-                    let other_device_host = DeviceHost {
-                        device_id: virtual_device.id.clone(),
-                        fqdn: host.clone(),
-                        local: true,
-                        paths: Paths(BTreeSet::new()),
-                        mount_path: MountPath(None),
-                        fs_type: None,
-                        fs_label: None,
-                        fs_uuid: None,
-                    };
+                    let other_device_host =
+                        make_other_device_host_for_removal(virtual_device.id.clone(), host.clone());
 
                     tracing::info!(
                         "Removing device host with id {:?} on host {:?}",
