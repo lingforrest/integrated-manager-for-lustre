@@ -813,6 +813,8 @@ mod test {
 
     #[test_case("vd_with_shared_parents_added_to_oss2")]
     #[test_case("vd_with_no_shared_parents_not_added_to_oss2")]
+    // A leaf device has changed data on one host
+    // It has to have updated data on the other one
     #[test_case("vd_with_shared_parents_updated_on_oss2")]
     // A leaf device is replaced with another leaf device
     // Previous one stays in the DB as available

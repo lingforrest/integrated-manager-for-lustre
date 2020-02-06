@@ -5,29 +5,37 @@ expression: updates
 {
     (
         DeviceId(
-            "d",
+            "c",
         ),
         Fqdn(
-            "oss1",
+            "oss2",
         ),
-    ): Add(
+    ): Update(
         DeviceHost {
             device_id: DeviceId(
-                "d",
+                "c",
             ),
             fqdn: Fqdn(
-                "oss1",
+                "oss2",
             ),
             local: true,
             paths: Paths(
-                {},
+                {
+                    "/fake/path/zpool/a",
+                },
             ),
             mount_path: MountPath(
                 None,
             ),
-            fs_type: None,
-            fs_label: None,
-            fs_uuid: None,
+            fs_type: Some(
+                "some_fs",
+            ),
+            fs_label: Some(
+                "new_some_label",
+            ),
+            fs_uuid: Some(
+                "some_uuid",
+            ),
         },
     ),
 }

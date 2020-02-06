@@ -21,8 +21,8 @@
       "d"
     ]
   },
-  "d": {
-    "id": "d",
+  "c": {
+    "id": "c",
     "size": 1,
     "usable_for_lustre": false,
     "device_type": "Zpool",
