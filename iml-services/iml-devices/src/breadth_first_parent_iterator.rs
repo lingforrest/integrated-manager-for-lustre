@@ -10,7 +10,7 @@ pub struct BreadthFirstParentIterator<'a, 'b> {
 
 impl<'a, 'b> BreadthFirstParentIterator<'a, 'b> {
     pub fn new(devices: &'a BTreeMap<DeviceId, Device>, device_id: &'b DeviceId) -> Self {
-        tracing::info!("Getting {:?} from devices", device_id);
+        tracing::trace!("Getting {:?} from devices", device_id);
         // TODO: This is dangerous
         let device = &devices[device_id];
 
@@ -32,7 +32,7 @@ impl<'a, 'b> Iterator for BreadthFirstParentIterator<'a, 'b> {
         }
 
         let p = self.parents.iter().next().unwrap().clone();
-        tracing::info!("Getting {:?} from devices", p);
+        tracing::trace!("Getting {:?} from devices", p);
         // TODO: This is dangerous
         let parent_device = &self.devices[&p];
         let parent_parents = &parent_device.parents;
