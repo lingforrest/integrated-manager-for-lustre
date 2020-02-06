@@ -117,6 +117,32 @@ fn remove_device_host(
     );
 }
 
+fn are_all_parents_available(
+    devices: &Devices,
+    device_hosts: &DeviceHosts,
+    host: Fqdn,
+    child_id: &DeviceId,
+) -> bool {
+    let mut i = BreadthFirstParentIterator::new(devices, child_id);
+    let all_available = i.all(|p| {
+        let result = device_hosts.get(&(p.clone(), host.clone())).is_some();
+        tracing::info!(
+            "Checking device {:?} on host {:?} in incoming: {:?}",
+            p,
+            host,
+            result
+        );
+        result
+    });
+    tracing::info!(
+        "Host: {:?}, device: {:?}, all_available: {:?}",
+        host,
+        child_id,
+        all_available
+    );
+    all_available
+}
+
 pub fn compute_virtual_device_changes<'a>(
     fqdn: &Fqdn,
     incoming_devices: &Devices,
@@ -148,24 +174,11 @@ pub fn compute_virtual_device_changes<'a>(
         // If it fails, remove the device host of this virtual device FROM THE DB
         // We can have incoming devices where there are two levels of parents of virtual devices
         {
-            let mut i = BreadthFirstParentIterator::new(incoming_devices, &virtual_device.id);
-            let all_available = i.all(|p| {
-                let result = incoming_device_hosts
-                    .get(&(p.clone(), fqdn.clone()))
-                    .is_some();
-                tracing::info!(
-                    "Checking device {:?} on host {:?} in incoming: {:?}",
-                    p,
-                    fqdn,
-                    result
-                );
-                result
-            });
-            tracing::info!(
-                "Host: {:?}, device: {:?}, all_available: {:?}",
-                fqdn,
-                virtual_device.id,
-                all_available
+            let all_available = are_all_parents_available(
+                incoming_devices,
+                incoming_device_hosts,
+                fqdn.clone(),
+                &virtual_device.id,
             );
             if !all_available {
                 // remove from db if present and not in flight
