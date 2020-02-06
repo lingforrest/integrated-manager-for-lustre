@@ -204,14 +204,23 @@ pub fn compute_virtual_device_changes<'a>(
         for host in all_other_host_fqdns {
             let mut i = BreadthFirstParentIterator::new(incoming_devices, &virtual_device.id);
             let all_available = i.all(|p| {
-                let result = db_device_hosts.get(&(p.clone(), host.clone())).is_some();
+                let result_db = db_device_hosts.get(&(p.clone(), host.clone())).is_some();
                 tracing::info!(
                     "Checking device {:?} on host {:?} in DB: {:?}",
                     p,
                     host,
-                    result
+                    result_db
                 );
-                result
+                let result_results = results
+                    .get(&(p.clone(), host.clone()))
+                    .is_some();
+                tracing::info!(
+                    "Checking device {:?} on host {:?} in results: {:?}",
+                    p,
+                    host,
+                    result_db
+                );
+                result_db || result_results
             });
             tracing::info!(
                 "Host: {:?}, device: {:?}, all_available: {:?}",
@@ -345,6 +354,7 @@ mod test {
     #[test_case("vd_with_shared_parents_removed_from_oss2_when_parent_disappears")]
     #[test_case("vd_with_two_levels_of_shared_parents_added_to_oss2")]
     fn compute_virtual_device_changes(test_name: &str) {
+        // crate::db::test::_init_subscriber();
         let (fqdn, incoming_devices, incoming_device_hosts, db_devices, db_device_hosts) =
             deser_fixture(test_name);
 
