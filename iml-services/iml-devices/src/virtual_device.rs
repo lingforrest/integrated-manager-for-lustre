@@ -57,6 +57,24 @@ fn make_other_device_host_for_removal(device_id: DeviceId, fqdn: Fqdn) -> Device
     }
 }
 
+fn remove_device_host(
+    device_id: DeviceId,
+    fqdn: Fqdn,
+    results: &mut BTreeMap<(DeviceId, Fqdn), Change<DeviceHost>>,
+) {
+    let other_device_host = make_other_device_host_for_removal(device_id.clone(), fqdn.clone());
+
+    tracing::info!(
+        "Removing device host with id {:?} on host {:?}",
+        device_id,
+        fqdn,
+    );
+    results.insert(
+        (device_id.clone(), fqdn.clone()),
+        Change::Remove(other_device_host),
+    );
+}
+
 pub fn compute_virtual_device_changes<'a>(
     fqdn: &Fqdn,
     incoming_devices: &Devices,
@@ -189,18 +207,7 @@ pub fn compute_virtual_device_changes<'a>(
                     .get(&(virtual_device.id.clone(), fqdn.clone()))
                     .is_some()
                 {
-                    let other_device_host =
-                        make_other_device_host_for_removal(virtual_device.id.clone(), fqdn.clone());
-
-                    tracing::info!(
-                        "Removing device host with id {:?} on host {:?}",
-                        virtual_device.id,
-                        fqdn,
-                    );
-                    results.insert(
-                        (virtual_device.id.clone(), fqdn.clone()),
-                        Change::Remove(other_device_host),
-                    );
+                    remove_device_host(virtual_device.id.clone(), fqdn.clone(), &mut results);
                 } else {
                     // It wasn't in the DB in the first place, nothing to do
                 }
@@ -320,18 +327,7 @@ pub fn compute_virtual_device_changes<'a>(
                     .get(&(virtual_device.id.clone(), host.clone()))
                     .is_some()
                 {
-                    let other_device_host =
-                        make_other_device_host_for_removal(virtual_device.id.clone(), host.clone());
-
-                    tracing::info!(
-                        "Removing device host with id {:?} on host {:?}",
-                        virtual_device.id,
-                        host,
-                    );
-                    results.insert(
-                        (virtual_device.id.clone(), host.clone()),
-                        Change::Remove(other_device_host),
-                    );
+                    remove_device_host(virtual_device.id.clone(), host.clone(), &mut results);
                 } else {
                     // It wasn't in the DB in the first place, nothing to do
                 }
