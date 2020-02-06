@@ -377,6 +377,10 @@ mod test {
     // We're not removing it since parents are still available
     // Virtual device that is parent of the replaced receives update that isn't necessary but isn't harmful
     #[test_case("vd_with_two_levels_of_shared_parents_replaced_on_oss2")]
+    // A leaf device has changed data on one host
+    // Virtual device that is parent of the replaced receives update that isn't necessary but isn't harmful
+    // It has to have updated data on the other one
+    #[test_case("vd_with_two_levels_of_shared_parents_updated_on_oss2")]
     fn compute_virtual_device_changes(test_name: &str) {
         // crate::db::test::_init_subscriber();
         let (fqdn, incoming_devices, incoming_device_hosts, db_devices, db_device_hosts) =
