@@ -211,9 +211,7 @@ pub fn compute_virtual_device_changes<'a>(
                     host,
                     result_db
                 );
-                let result_results = results
-                    .get(&(p.clone(), host.clone()))
-                    .is_some();
+                let result_results = results.get(&(p.clone(), host.clone())).is_some();
                 tracing::info!(
                     "Checking device {:?} on host {:?} in results: {:?}",
                     p,
@@ -259,6 +257,9 @@ pub fn compute_virtual_device_changes<'a>(
                 if db_device_hosts
                     .get(&(virtual_device.id.clone(), host.clone()))
                     .is_none()
+                    && incoming_device_hosts
+                        .get(&(virtual_device.id.clone(), host.clone()))
+                        .is_none()
                     && results
                         .get(&(virtual_device.id.clone(), host.clone()))
                         .is_none()
@@ -276,6 +277,9 @@ pub fn compute_virtual_device_changes<'a>(
                 } else if db_device_hosts
                     .get(&(virtual_device.id.clone(), host.clone()))
                     .is_some()
+                    && incoming_device_hosts
+                        .get(&(virtual_device.id.clone(), host.clone()))
+                        .is_none()
                     && results
                         .get(&(virtual_device.id.clone(), host.clone()))
                         .is_none()
@@ -295,7 +299,18 @@ pub fn compute_virtual_device_changes<'a>(
                 {
                     unreachable!();
                 } else {
-                    unreachable!();
+                    tracing::warn!(
+                        "DB: {:?}, incoming: {:?}, results: {:?}",
+                        db_device_hosts
+                            .get(&(virtual_device.id.clone(), fqdn.clone()))
+                            .is_some(),
+                        incoming_device_hosts
+                            .get(&(virtual_device.id.clone(), fqdn.clone()))
+                            .is_some(),
+                        results
+                            .get(&(virtual_device.id.clone(), fqdn.clone()))
+                            .is_some()
+                    );
                 }
             } else {
                 // remove from db if present and not in flight
@@ -353,6 +368,10 @@ mod test {
     #[test_case("vd_with_shared_parents_replaced_on_oss2")]
     #[test_case("vd_with_shared_parents_removed_from_oss2_when_parent_disappears")]
     #[test_case("vd_with_two_levels_of_shared_parents_added_to_oss2")]
+    // An intermediary non-virtual parent disappears from the host
+    // Its children are getting removed
+    // Virtual devices from the other host receive updates that aren't necessary but aren't harmful
+    #[test_case("vd_with_two_levels_of_shared_parents_removed_from_oss2_when_parent_disappears")]
     fn compute_virtual_device_changes(test_name: &str) {
         // crate::db::test::_init_subscriber();
         let (fqdn, incoming_devices, incoming_device_hosts, db_devices, db_device_hosts) =
