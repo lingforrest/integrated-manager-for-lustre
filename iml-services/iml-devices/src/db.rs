@@ -433,6 +433,7 @@ fn compute_virtual_device_changes<'a>(
             incoming_device_hosts.get(&(virtual_device.id.clone(), fqdn.clone()));
         tracing::info!("virtual_device_host: {:#?}", virtual_device_host);
 
+        // TODO: Consider just using db_device_hosts. Incoming are only for current fqdn
         let all_other_host_fqdns: BTreeSet<_> = incoming_device_hosts
             .iter()
             .chain(db_device_hosts.iter())
@@ -555,6 +556,20 @@ fn compute_virtual_device_changes<'a>(
             }
         }
     }
+
+    let db_virtual_devices = db_devices
+    .iter()
+    .filter(|(_, d)| {
+        d.device_type == DeviceType::MdRaid
+            || d.device_type == DeviceType::VolumeGroup
+            || d.device_type == DeviceType::Dataset
+            || d.device_type == DeviceType::Zpool
+    })
+    .map(|(_, d)| d);
+
+    for virtual_device in db_virtual_devices {
+    }
+
 
     Ok(results)
 }
