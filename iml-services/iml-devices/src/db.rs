@@ -397,6 +397,15 @@ pub(crate) mod test {
     use ::test_case::test_case;
     use insta::assert_debug_snapshot;
     use std::{fs, path::Path};
+    use tracing_subscriber::FmtSubscriber;
+
+    pub(crate) fn _init_subscriber() {
+        let subscriber = FmtSubscriber::new();
+
+        tracing::subscriber::set_global_default(subscriber)
+            .map_err(|_err| eprintln!("Unable to set global default subscriber"))
+            .unwrap();
+    }
 
     pub(crate) fn deser_devices<P>(path: P) -> BTreeMap<DeviceId, Device>
     where

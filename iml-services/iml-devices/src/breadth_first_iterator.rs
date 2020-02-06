@@ -10,6 +10,7 @@ pub struct BreadthFirstIterator<'a, 'b> {
 
 impl<'a, 'b> BreadthFirstIterator<'a, 'b> {
     pub fn new(devices: &'a BTreeMap<DeviceId, Device>, device_id: &'b DeviceId) -> Self {
+        tracing::info!("Getting {:?} from devices", device_id);
         // TODO: This is dangerous
         let device = &devices[device_id];
 
@@ -31,6 +32,7 @@ impl<'a, 'b> Iterator for BreadthFirstIterator<'a, 'b> {
         }
 
         let p = self.parents.iter().next().unwrap().clone();
+        tracing::info!("Getting {:?} from devices", p);
         // TODO: This is dangerous
         let parent_device = &self.devices[&p];
         let parent_parents = &parent_device.parents;
@@ -62,6 +64,7 @@ mod test {
     #[test_case("two_parents_produce_two_items", "c")]
     #[test_case("parent_and_double_parent_produce_three_items", "c1")]
     #[test_case("triple_parent_and_double_parent_produce_five_items", "c1")]
+    #[test_case("three_parents_produce_three_items", "d")]
     fn breadth_first_iterator(test_case: &str, child: &str) {
         let prefix = String::from("fixtures/") + test_case + "/";
         let devices = deser_devices(prefix.clone() + "devices.json");

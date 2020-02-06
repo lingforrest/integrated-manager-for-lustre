@@ -233,15 +233,6 @@ mod test {
     use crate::db::test::{deser_devices, deser_fixture};
     use ::test_case::test_case;
     use insta::assert_debug_snapshot;
-    use tracing_subscriber::FmtSubscriber;
-
-    fn _init_subscriber() {
-        let subscriber = FmtSubscriber::new();
-
-        tracing::subscriber::set_global_default(subscriber)
-            .map_err(|_err| eprintln!("Unable to set global default subscriber"))
-            .unwrap();
-    }
 
     #[test_case("vd_with_shared_parents_added_to_oss2")]
     #[test_case("vd_with_no_shared_parents_not_added_to_oss2")]
