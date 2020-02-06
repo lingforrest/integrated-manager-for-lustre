@@ -1,5 +1,9 @@
-use crate::db::DeviceHosts;
-use crate::{change::Change, db::Devices, error::ImlDevicesError};
+use crate::{
+    breadth_first_iterator::BreadthFirstIterator,
+    change::Change,
+    db::{DeviceHosts, Devices},
+    error::ImlDevicesError,
+};
 use iml_wire_types::db::{Device, DeviceHost, DeviceId, DeviceType, MountPath, Paths};
 use iml_wire_types::Fqdn;
 use std::collections::{BTreeMap, BTreeSet};
@@ -221,53 +225,6 @@ pub fn compute_virtual_device_changes<'a>(
     }
 
     Ok(results)
-}
-
-struct BreadthFirstIterator<'a, 'b> {
-    devices: &'a BTreeMap<DeviceId, Device>,
-    parents: BTreeSet<DeviceId>,
-    next_parents: BTreeSet<DeviceId>,
-    _marker: &'b std::marker::PhantomData<()>,
-}
-
-impl<'a, 'b> BreadthFirstIterator<'a, 'b> {
-    fn new(devices: &'a BTreeMap<DeviceId, Device>, device_id: &'b DeviceId) -> Self {
-        let device = &devices[device_id];
-
-        Self {
-            devices,
-            parents: device.parents.clone(),
-            next_parents: BTreeSet::new(),
-            _marker: &std::marker::PhantomData,
-        }
-    }
-}
-
-impl<'a, 'b> Iterator for BreadthFirstIterator<'a, 'b> {
-    type Item = DeviceId;
-
-    fn next(&mut self) -> Option<DeviceId> {
-        if self.parents.is_empty() {
-            return None;
-        }
-
-        let p = self.parents.iter().next().unwrap().clone();
-        let parent_device = &self.devices[&p];
-        let parent_parents = &parent_device.parents;
-
-        for pp in parent_parents.iter() {
-            self.next_parents.insert(pp.clone());
-        }
-
-        self.parents.remove(&p);
-
-        if self.parents.is_empty() {
-            self.parents = self.next_parents.clone();
-            self.next_parents = BTreeSet::new();
-        }
-
-        Some(p)
-    }
 }
 
 #[cfg(test)]
