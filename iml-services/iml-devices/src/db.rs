@@ -433,6 +433,62 @@ fn compute_virtual_device_changes<'a>(
             incoming_device_hosts.get(&(virtual_device.id.clone(), fqdn.clone()));
         tracing::info!("virtual_device_host: {:#?}", virtual_device_host);
 
+        // For this host itself, run parents check for this virtual device ON THE INCOMING DEVICE HOSTS
+        // If it fails, remove the device host of this virtual device FROM THE DB
+        // We don't add virtual devices here, because either:
+        // 1. Device scanner sends us the virtual device, if it's physically present on the host
+        // 2. We add it as part of processing of other hosts in the loop below
+        {
+            let mut i = BreadthFirstIterator::new(incoming_devices, &virtual_device.id);
+            let all_available = i.all(|p| {
+                let result = incoming_device_hosts.get(&(p.clone(), fqdn.clone())).is_some();
+                tracing::info!("Checking device {:?} on host {:?}: {:?}", p, fqdn, result);
+                result
+            });
+            tracing::info!(
+                "Host: {:#?}, device: {:#?}, all_available: {:?}",
+                fqdn,
+                virtual_device.id,
+                all_available
+            );
+            if !all_available {
+                // remove from db if present and not in flight
+                // remove from in-flight if in flight - is it necessary though?
+
+                if db_device_hosts
+                    .get(&(virtual_device.id.clone(), fqdn.clone()))
+                    .is_some()
+                {
+                    let other_device_host = DeviceHost {
+                        device_id: virtual_device.id.clone(),
+                        fqdn: fqdn.clone(),
+                        local: true,
+                        paths: Paths(BTreeSet::new()),
+                        mount_path: MountPath(None),
+                        fs_type: None,
+                        fs_label: None,
+                        fs_uuid: None,
+                    };
+
+                    tracing::info!(
+                        "Removing device host with id {:?} on host {:?}",
+                        virtual_device.id,
+                        fqdn,
+                    );
+                    results.insert(
+                        (virtual_device.id.clone(), fqdn.clone()),
+                        Change::Remove(other_device_host),
+                    );
+                } else {
+                    // It wasn't in the DB in the first place, nothing to do
+                }
+            }
+        }
+
+        // For all other hosts, run parents check for this virtual device ON THE DB.
+        // This is because main loop processes updates from single host at a time.
+        // That means current state of other hosts is in DB at this point.
+
         // TODO: Consider just using db_device_hosts. Incoming are only for current fqdn
         let all_other_host_fqdns: BTreeSet<_> = incoming_device_hosts
             .iter()

@@ -38,4 +38,31 @@ expression: updates
             ),
         },
     ),
+    (
+        DeviceId(
+            "c",
+        ),
+        Fqdn(
+            "oss2",
+        ),
+    ): Remove(
+        DeviceHost {
+            device_id: DeviceId(
+                "c",
+            ),
+            fqdn: Fqdn(
+                "oss2",
+            ),
+            local: true,
+            paths: Paths(
+                {},
+            ),
+            mount_path: MountPath(
+                None,
+            ),
+            fs_type: None,
+            fs_label: None,
+            fs_uuid: None,
+        },
+    ),
 }
