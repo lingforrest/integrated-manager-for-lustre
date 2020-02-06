@@ -66,6 +66,8 @@ pub fn compute_virtual_device_changes<'a>(
                 // remove from db if present and not in flight
                 // remove from in-flight if in flight - is it necessary though?
 
+                // TODO: Factor out removal to be a function
+                // Same for addition and update
                 if db_device_hosts
                     .get(&(virtual_device.id.clone(), fqdn.clone()))
                     .is_some()
