@@ -146,10 +146,7 @@ pub fn compute_virtual_device_changes<'a>(
 
         // For this host itself, run parents check for this virtual device ON THE INCOMING DEVICE HOSTS
         // If it fails, remove the device host of this virtual device FROM THE DB
-        // We don't add virtual devices here, because either: - TURNS OUT THIS IS INCORRECT
         // We can have incoming devices where there are two levels of parents of virtual devices
-        // 1. Device scanner sends us the virtual device, if it's physically present on the host
-        // 2. We add it as part of processing of other hosts in the loop below
         {
             let mut i = BreadthFirstParentIterator::new(incoming_devices, &virtual_device.id);
             let all_available = i.all(|p| {
