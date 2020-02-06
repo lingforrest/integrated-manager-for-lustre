@@ -57,6 +57,48 @@ fn make_other_device_host_for_removal(device_id: DeviceId, fqdn: Fqdn) -> Device
     }
 }
 
+fn add_device_host(
+    device_id: DeviceId,
+    fqdn: Fqdn,
+    virtual_device_host: Option<&DeviceHost>,
+    results: &mut BTreeMap<(DeviceId, Fqdn), Change<DeviceHost>>,
+) {
+    let other_device_host =
+        make_other_device_host(device_id.clone(), fqdn.clone(), virtual_device_host);
+
+    tracing::info!(
+        "Adding new device host with id {:?} to host {:?}",
+        device_id,
+        fqdn
+    );
+
+    results.insert(
+        (device_id.clone(), fqdn.clone()),
+        Change::Add(other_device_host),
+    );
+}
+
+fn update_device_host(
+    device_id: DeviceId,
+    fqdn: Fqdn,
+    virtual_device_host: Option<&DeviceHost>,
+    results: &mut BTreeMap<(DeviceId, Fqdn), Change<DeviceHost>>,
+) {
+    let other_device_host =
+        make_other_device_host(device_id.clone(), fqdn.clone(), virtual_device_host);
+
+    tracing::info!(
+        "Updating device host with id {:?} on host {:?}",
+        device_id,
+        fqdn
+    );
+
+    results.insert(
+        (device_id.clone(), fqdn.clone()),
+        Change::Update(other_device_host),
+    );
+}
+
 fn remove_device_host(
     device_id: DeviceId,
     fqdn: Fqdn,
@@ -129,12 +171,6 @@ pub fn compute_virtual_device_changes<'a>(
                 all_available
             );
             if all_available {
-                let other_device_host = make_other_device_host(
-                    virtual_device.id.clone(),
-                    fqdn.clone(),
-                    virtual_device_host,
-                );
-
                 // add to database if missing and not in flight
                 // update in database if present and not in flight
                 // update in flight if in flight - is it necessary though?
@@ -149,15 +185,11 @@ pub fn compute_virtual_device_changes<'a>(
                         .get(&(virtual_device.id.clone(), fqdn.clone()))
                         .is_none()
                 {
-                    tracing::info!(
-                        "Adding new device host with id {:?} to host {:?}",
-                        virtual_device.id,
-                        fqdn
-                    );
-
-                    results.insert(
-                        (virtual_device.id.clone(), fqdn.clone()),
-                        Change::Add(other_device_host),
+                    add_device_host(
+                        virtual_device.id.clone(),
+                        fqdn.clone(),
+                        virtual_device_host,
+                        &mut results,
                     );
                 } else if db_device_hosts
                     .get(&(virtual_device.id.clone(), fqdn.clone()))
@@ -169,14 +201,11 @@ pub fn compute_virtual_device_changes<'a>(
                         .get(&(virtual_device.id.clone(), fqdn.clone()))
                         .is_none()
                 {
-                    tracing::info!(
-                        "Updating device host with id {:?} on host {:?}",
-                        virtual_device.id,
-                        fqdn
-                    );
-                    results.insert(
-                        (virtual_device.id.clone(), fqdn.clone()),
-                        Change::Update(other_device_host),
+                    update_device_host(
+                        virtual_device.id.clone(),
+                        fqdn.clone(),
+                        virtual_device_host,
+                        &mut results,
                     );
                 } else if results
                     .get(&(virtual_device.id.clone(), fqdn.clone()))
@@ -251,12 +280,6 @@ pub fn compute_virtual_device_changes<'a>(
                 all_available
             );
             if all_available {
-                let other_device_host = make_other_device_host(
-                    virtual_device.id.clone(),
-                    host.clone(),
-                    virtual_device_host,
-                );
-
                 // add to database if missing and not in flight
                 // update in database if present and not in flight
                 // update in flight if in flight - is it necessary though?
@@ -271,15 +294,11 @@ pub fn compute_virtual_device_changes<'a>(
                         .get(&(virtual_device.id.clone(), host.clone()))
                         .is_none()
                 {
-                    tracing::info!(
-                        "Adding new device host with id {:?} to host {:?}",
-                        virtual_device.id,
-                        host
-                    );
-
-                    results.insert(
-                        (virtual_device.id.clone(), host.clone()),
-                        Change::Add(other_device_host),
+                    add_device_host(
+                        virtual_device.id.clone(),
+                        host.clone(),
+                        virtual_device_host,
+                        &mut results,
                     );
                 } else if db_device_hosts
                     .get(&(virtual_device.id.clone(), host.clone()))
@@ -291,14 +310,11 @@ pub fn compute_virtual_device_changes<'a>(
                         .get(&(virtual_device.id.clone(), host.clone()))
                         .is_none()
                 {
-                    tracing::info!(
-                        "Updating device host with id {:?} on host {:?}",
-                        virtual_device.id,
-                        host
-                    );
-                    results.insert(
-                        (virtual_device.id.clone(), host.clone()),
-                        Change::Update(other_device_host),
+                    update_device_host(
+                        virtual_device.id.clone(),
+                        host.clone(),
+                        virtual_device_host,
+                        &mut results,
                     );
                 } else if results
                     .get(&(virtual_device.id.clone(), host.clone()))
