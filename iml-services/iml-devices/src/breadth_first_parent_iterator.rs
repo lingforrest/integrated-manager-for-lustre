@@ -1,14 +1,14 @@
 use iml_wire_types::db::{Device, DeviceId};
 use std::collections::{BTreeMap, BTreeSet};
 
-pub struct BreadthFirstIterator<'a, 'b> {
+pub struct BreadthFirstParentIterator<'a, 'b> {
     devices: &'a BTreeMap<DeviceId, Device>,
     parents: BTreeSet<DeviceId>,
     next_parents: BTreeSet<DeviceId>,
     _marker: &'b std::marker::PhantomData<()>,
 }
 
-impl<'a, 'b> BreadthFirstIterator<'a, 'b> {
+impl<'a, 'b> BreadthFirstParentIterator<'a, 'b> {
     pub fn new(devices: &'a BTreeMap<DeviceId, Device>, device_id: &'b DeviceId) -> Self {
         tracing::info!("Getting {:?} from devices", device_id);
         // TODO: This is dangerous
@@ -23,7 +23,7 @@ impl<'a, 'b> BreadthFirstIterator<'a, 'b> {
     }
 }
 
-impl<'a, 'b> Iterator for BreadthFirstIterator<'a, 'b> {
+impl<'a, 'b> Iterator for BreadthFirstParentIterator<'a, 'b> {
     type Item = DeviceId;
 
     fn next(&mut self) -> Option<DeviceId> {
@@ -70,7 +70,7 @@ mod test {
         let devices = deser_devices(prefix.clone() + "devices.json");
 
         let id = DeviceId(child.into());
-        let i = BreadthFirstIterator::new(&devices, &id);
+        let i = BreadthFirstParentIterator::new(&devices, &id);
         let result: Vec<_> = i.collect();
         assert_debug_snapshot!(test_case, result);
     }

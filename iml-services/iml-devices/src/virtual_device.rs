@@ -1,5 +1,5 @@
 use crate::{
-    breadth_first_iterator::BreadthFirstIterator,
+    breadth_first_parent_iterator::BreadthFirstParentIterator,
     change::Change,
     db::{DeviceHosts, Devices},
     error::ImlDevicesError,
@@ -48,7 +48,7 @@ pub fn compute_virtual_device_changes<'a>(
         // 1. Device scanner sends us the virtual device, if it's physically present on the host
         // 2. We add it as part of processing of other hosts in the loop below
         {
-            let mut i = BreadthFirstIterator::new(incoming_devices, &virtual_device.id);
+            let mut i = BreadthFirstParentIterator::new(incoming_devices, &virtual_device.id);
             let all_available = i.all(|p| {
                 let result = incoming_device_hosts
                     .get(&(p.clone(), fqdn.clone()))
@@ -108,7 +108,7 @@ pub fn compute_virtual_device_changes<'a>(
             .collect();
 
         for host in all_other_host_fqdns {
-            let mut i = BreadthFirstIterator::new(incoming_devices, &virtual_device.id);
+            let mut i = BreadthFirstParentIterator::new(incoming_devices, &virtual_device.id);
             let all_available = i.all(|p| {
                 let result = db_device_hosts.get(&(p.clone(), host.clone())).is_some();
                 tracing::info!("Checking device {:?} on host {:?}: {:?}", p, host, result);
@@ -270,7 +270,7 @@ mod test {
         let devices = deser_devices(prefix.clone() + "devices.json");
 
         let id = DeviceId(child.into());
-        let i = BreadthFirstIterator::new(&devices, &id);
+        let i = BreadthFirstParentIterator::new(&devices, &id);
         let result: Vec<_> = i.collect();
         assert_debug_snapshot!(test_case, result);
     }
