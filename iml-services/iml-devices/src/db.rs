@@ -813,7 +813,6 @@ mod test {
 
     #[test_case("vd_with_shared_parents_added_to_oss2")]
     #[test_case("vd_with_no_shared_parents_not_added_to_oss2")]
-    // TODO: check these two again
     #[test_case("vd_with_shared_parents_updated_on_oss2")]
     #[test_case("vd_with_shared_parents_removed_from_oss2_when_parent_disappears")]
     fn compute_virtual_device_changes(test_name: &str) {
