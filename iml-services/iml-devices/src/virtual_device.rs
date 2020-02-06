@@ -168,61 +168,63 @@ pub fn compute_virtual_device_changes<'a>(
                 all_available
             );
             if all_available {
-                // add to database if missing and not in flight
-                // update in database if present and not in flight
-                // update in flight if in flight - is it necessary though?
+                // TODO: This might be unnecessary
 
-                if db_device_hosts
-                    .get(&(virtual_device.id.clone(), fqdn.clone()))
-                    .is_none()
-                    && incoming_device_hosts
-                        .get(&(virtual_device.id.clone(), fqdn.clone()))
-                        .is_none()
-                    && results
-                        .get(&(virtual_device.id.clone(), fqdn.clone()))
-                        .is_none()
-                {
-                    add_device_host(
-                        virtual_device.id.clone(),
-                        fqdn.clone(),
-                        virtual_device_host,
-                        &mut results,
-                    );
-                } else if db_device_hosts
-                    .get(&(virtual_device.id.clone(), fqdn.clone()))
-                    .is_some()
-                    && incoming_device_hosts
-                        .get(&(virtual_device.id.clone(), fqdn.clone()))
-                        .is_none()
-                    && results
-                        .get(&(virtual_device.id.clone(), fqdn.clone()))
-                        .is_none()
-                {
-                    update_device_host(
-                        virtual_device.id.clone(),
-                        fqdn.clone(),
-                        virtual_device_host,
-                        &mut results,
-                    );
-                } else if results
-                    .get(&(virtual_device.id.clone(), fqdn.clone()))
-                    .is_some()
-                {
-                    unreachable!();
-                } else {
-                    tracing::warn!(
-                        "DB: {:?}, incoming: {:?}, results: {:?}",
-                        db_device_hosts
-                            .get(&(virtual_device.id.clone(), fqdn.clone()))
-                            .is_some(),
-                        incoming_device_hosts
-                            .get(&(virtual_device.id.clone(), fqdn.clone()))
-                            .is_some(),
-                        results
-                            .get(&(virtual_device.id.clone(), fqdn.clone()))
-                            .is_some()
-                    );
-                }
+                // // add to database if missing and not in flight
+                // // update in database if present and not in flight
+                // // update in flight if in flight - is it necessary though?
+
+                // if db_device_hosts
+                //     .get(&(virtual_device.id.clone(), fqdn.clone()))
+                //     .is_none()
+                //     && incoming_device_hosts
+                //         .get(&(virtual_device.id.clone(), fqdn.clone()))
+                //         .is_none()
+                //     && results
+                //         .get(&(virtual_device.id.clone(), fqdn.clone()))
+                //         .is_none()
+                // {
+                //     add_device_host(
+                //         virtual_device.id.clone(),
+                //         fqdn.clone(),
+                //         virtual_device_host,
+                //         &mut results,
+                //     );
+                // } else if db_device_hosts
+                //     .get(&(virtual_device.id.clone(), fqdn.clone()))
+                //     .is_some()
+                //     && incoming_device_hosts
+                //         .get(&(virtual_device.id.clone(), fqdn.clone()))
+                //         .is_none()
+                //     && results
+                //         .get(&(virtual_device.id.clone(), fqdn.clone()))
+                //         .is_none()
+                // {
+                //     update_device_host(
+                //         virtual_device.id.clone(),
+                //         fqdn.clone(),
+                //         virtual_device_host,
+                //         &mut results,
+                //     );
+                // } else if results
+                //     .get(&(virtual_device.id.clone(), fqdn.clone()))
+                //     .is_some()
+                // {
+                //     unreachable!();
+                // } else {
+                //     tracing::warn!(
+                //         "DB: {:?}, incoming: {:?}, results: {:?}",
+                //         db_device_hosts
+                //             .get(&(virtual_device.id.clone(), fqdn.clone()))
+                //             .is_some(),
+                //         incoming_device_hosts
+                //             .get(&(virtual_device.id.clone(), fqdn.clone()))
+                //             .is_some(),
+                //         results
+                //             .get(&(virtual_device.id.clone(), fqdn.clone()))
+                //             .is_some()
+                //     );
+                // }
             } else {
                 // remove from db if present and not in flight
                 // remove from in-flight if in flight - is it necessary though?
