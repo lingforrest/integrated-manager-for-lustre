@@ -10,6 +10,7 @@ pub struct BreadthFirstIterator<'a, 'b> {
 
 impl<'a, 'b> BreadthFirstIterator<'a, 'b> {
     pub fn new(devices: &'a BTreeMap<DeviceId, Device>, device_id: &'b DeviceId) -> Self {
+        // TODO: This is dangerous
         let device = &devices[device_id];
 
         Self {
@@ -30,6 +31,7 @@ impl<'a, 'b> Iterator for BreadthFirstIterator<'a, 'b> {
         }
 
         let p = self.parents.iter().next().unwrap().clone();
+        // TODO: This is dangerous
         let parent_device = &self.devices[&p];
         let parent_parents = &parent_device.parents;
 
