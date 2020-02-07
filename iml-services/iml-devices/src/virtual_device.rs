@@ -337,6 +337,7 @@ mod test {
     // Virtual device that is parent of the replaced receives update that isn't necessary but isn't harmful
     // It has to have updated data on the other one
     #[test_case("vd_with_two_levels_of_shared_parents_updated_on_oss2")]
+    #[test_case("vd_with_two_levels_of_shared_parents_in_reverse_order_added_to_oss2")]
     fn compute_virtual_device_changes(test_name: &str) {
         // crate::db::test::_init_subscriber();
         let (fqdn, incoming_devices, incoming_device_hosts, db_devices, db_device_hosts) =
