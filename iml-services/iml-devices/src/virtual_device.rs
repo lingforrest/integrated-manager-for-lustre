@@ -205,7 +205,7 @@ pub fn compute_virtual_device_changes<'a>(
     // f will be added
     // then on second iteration e will find previously added f and will be added
 
-    // Limitation: we support up to three levels currently
+    // Limitation: we support up to three levels of VIRTUAL DEVICES currently
     // We need to look into more generic algorithm in the future
     for virtual_device in virtual_devices.chain(vd2).chain(vd3) {
         tracing::info!(
