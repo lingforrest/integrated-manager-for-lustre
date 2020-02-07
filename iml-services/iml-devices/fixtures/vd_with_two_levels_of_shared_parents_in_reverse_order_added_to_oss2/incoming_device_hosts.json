@@ -1,48 +1,48 @@
 [
   {
-    "device_id": "d",
+    "device_id": "h",
     "fqdn": "oss1",
     "local": true,
     "paths": [
-      "/fake/path/dataset/a"
+      "/fake/path/scsi/h"
     ],
-    "mount_path": "/fake/path/dataset/a",
+    "mount_path": "/fake/path/scsi/h",
     "fs_type": "some_fs",
     "fs_label": "some_label",
     "fs_uuid": "some_uuid"
   },
   {
-    "device_id": "c",
+    "device_id": "g",
     "fqdn": "oss1",
     "local": true,
     "paths": [
-      "/fake/path/zpool/a"
+      "/fake/path/mpath/h"
     ],
-    "mount_path": "/fake/path/zpool/a",
+    "mount_path": "/fake/path/mpath/h",
     "fs_type": "some_fs",
     "fs_label": "some_label",
     "fs_uuid": "some_uuid"
   },
   {
-    "device_id": "b",
+    "device_id": "f",
     "fqdn": "oss1",
     "local": true,
     "paths": [
-      "/fake/path/mpath/a"
+      "/fake/path/zpool/h"
     ],
-    "mount_path": "/fake/path/mpath/a",
+    "mount_path": "/fake/path/zpool/h",
     "fs_type": "some_fs",
     "fs_label": "some_label",
     "fs_uuid": "some_uuid"
   },
   {
-    "device_id": "a",
+    "device_id": "e",
     "fqdn": "oss1",
     "local": true,
     "paths": [
-      "/fake/path/scsi/a"
+      "/fake/path/dataset/h"
     ],
-    "mount_path": "/fake/path/scsi/a",
+    "mount_path": "/fake/path/dataset/h",
     "fs_type": "some_fs",
     "fs_label": "some_label",
     "fs_uuid": "some_uuid"

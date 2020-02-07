@@ -1,21 +1,21 @@
 {
-    "a": {
-        "id": "a",
+    "h": {
+        "id": "h",
         "size": 1,
         "usable_for_lustre": false,
         "device_type": "ScsiDevice",
         "parents": [],
         "children": [
-            "b"
+            "g"
         ]
     },
-    "b": {
-        "id": "b",
+    "g": {
+        "id": "g",
         "size": 1,
         "usable_for_lustre": false,
         "device_type": "Mpath",
         "parents": [
-            "a"
+            "h"
         ],
         "children": []
     }

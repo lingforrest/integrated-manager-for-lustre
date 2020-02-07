@@ -193,8 +193,19 @@ pub fn compute_virtual_device_changes<'a>(
         .iter()
         .filter(|(_, d)| is_virtual_device(d))
         .map(|(_, d)| d);
+    let vd2 = virtual_devices.clone();
 
-    for virtual_device in virtual_devices {
+    // We're iterating the device twice
+    // Consider devices h -> g -> f -> e
+    // f and e are virtual
+    // e will be seen first and it won't have f as a parent available on the other host
+    // so it won't be added
+    // f will be added
+    // then on second iteration e will find previously added f and will be added
+
+    // what happens on 10 -> 9 -> 8 -> 7 -> 6 -> 5
+    // where 5-7 are virtual?
+    for virtual_device in virtual_devices.chain(vd2) {
         tracing::info!(
             "virtual_device: {:?}, parents: {:?}, children: {:?}",
             virtual_device.id,

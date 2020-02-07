@@ -1,45 +1,45 @@
 {
-  "a": {
-    "id": "a",
+  "h": {
+    "id": "h",
     "size": 1,
     "usable_for_lustre": false,
     "device_type": "ScsiDevice",
     "parents": [],
     "children": [
-      "b"
+      "g"
     ]
   },
-  "b": {
-    "id": "b",
+  "g": {
+    "id": "g",
     "size": 1,
     "usable_for_lustre": false,
     "device_type": "Mpath",
     "parents": [
-      "a"
+      "h"
     ],
     "children": [
-      "c"
+      "f"
     ]
   },
-  "c": {
-    "id": "c",
+  "f": {
+    "id": "f",
     "size": 1,
     "usable_for_lustre": false,
     "device_type": "Zpool",
     "parents": [
-      "b"
+      "g"
     ],
     "children": [
-      "d"
+      "e"
     ]
   },
-  "d": {
-    "id": "d",
+  "e": {
+    "id": "e",
     "size": 1,
     "usable_for_lustre": false,
     "device_type": "Dataset",
     "parents": [
-      "c"
+      "f"
     ],
     "children": []
   }

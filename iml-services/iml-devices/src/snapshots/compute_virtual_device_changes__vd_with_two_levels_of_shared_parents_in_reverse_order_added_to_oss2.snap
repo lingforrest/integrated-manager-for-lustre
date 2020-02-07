@@ -5,7 +5,7 @@ expression: updates
 {
     (
         DeviceId(
-            "c",
+            "e",
         ),
         Fqdn(
             "oss2",
@@ -13,7 +13,7 @@ expression: updates
     ): Add(
         DeviceHost {
             device_id: DeviceId(
-                "c",
+                "e",
             ),
             fqdn: Fqdn(
                 "oss2",
@@ -21,7 +21,7 @@ expression: updates
             local: true,
             paths: Paths(
                 {
-                    "/fake/path/zpool/a",
+                    "/fake/path/dataset/h",
                 },
             ),
             mount_path: MountPath(
@@ -40,7 +40,7 @@ expression: updates
     ),
     (
         DeviceId(
-            "d",
+            "f",
         ),
         Fqdn(
             "oss2",
@@ -48,7 +48,7 @@ expression: updates
     ): Add(
         DeviceHost {
             device_id: DeviceId(
-                "d",
+                "f",
             ),
             fqdn: Fqdn(
                 "oss2",
@@ -56,7 +56,7 @@ expression: updates
             local: true,
             paths: Paths(
                 {
-                    "/fake/path/dataset/a",
+                    "/fake/path/zpool/h",
                 },
             ),
             mount_path: MountPath(
