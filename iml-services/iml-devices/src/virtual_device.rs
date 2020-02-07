@@ -206,13 +206,13 @@ pub fn compute_virtual_device_changes<'a>(
                 &virtual_device.id,
             );
             if !all_available {
+                let is_in_db = db_device_hosts
+                    .get(&(virtual_device.id.clone(), fqdn.clone()))
+                    .is_some();
                 // remove from db if present and not in flight
                 // remove from in-flight if in flight - is it necessary though?
 
-                if db_device_hosts
-                    .get(&(virtual_device.id.clone(), fqdn.clone()))
-                    .is_some()
-                {
+                if is_in_db {
                     remove_device_host(virtual_device.id.clone(), fqdn.clone(), &mut results);
                 } else {
                     // It wasn't in the DB in the first place, nothing to do
@@ -224,7 +224,8 @@ pub fn compute_virtual_device_changes<'a>(
         // This is because main loop processes updates from single host at a time.
         // That means current state of other hosts is in DB at this point.
 
-        let all_other_host_fqdns: BTreeSet<_> = db_device_hosts.iter()
+        let all_other_host_fqdns: BTreeSet<_> = db_device_hosts
+            .iter()
             .filter_map(|((_, f), _)| if f != fqdn { Some(f) } else { None })
             .collect();
 
@@ -236,31 +237,27 @@ pub fn compute_virtual_device_changes<'a>(
                 host.clone(),
                 &virtual_device.id,
             );
+
+            let is_in_db = db_device_hosts
+                .get(&(virtual_device.id.clone(), host.clone()))
+                .is_some();
+
             if all_available {
                 // add to database if missing and not in flight
                 // update in database if present and not in flight
                 // update in flight if in flight - is it necessary though?
-
-                if db_device_hosts
+                let is_in_results = results
                     .get(&(virtual_device.id.clone(), host.clone()))
-                    .is_none()
-                    && results
-                        .get(&(virtual_device.id.clone(), host.clone()))
-                        .is_none()
-                {
+                    .is_none();
+
+                if !is_in_db && is_in_results {
                     add_device_host(
                         virtual_device.id.clone(),
                         host.clone(),
                         virtual_device_host,
                         &mut results,
                     );
-                } else if db_device_hosts
-                    .get(&(virtual_device.id.clone(), host.clone()))
-                    .is_some()
-                    && results
-                        .get(&(virtual_device.id.clone(), host.clone()))
-                        .is_none()
-                {
+                } else if is_in_db && is_in_results {
                     update_device_host(
                         virtual_device.id.clone(),
                         host.clone(),
@@ -268,27 +265,22 @@ pub fn compute_virtual_device_changes<'a>(
                         &mut results,
                     );
                 } else {
+                    let is_in_incoming = incoming_device_hosts
+                        .get(&(virtual_device.id.clone(), fqdn.clone()))
+                        .is_some();
+
                     tracing::warn!(
                         "DB: {:?}, incoming: {:?}, results: {:?}",
-                        db_device_hosts
-                            .get(&(virtual_device.id.clone(), fqdn.clone()))
-                            .is_some(),
-                        incoming_device_hosts
-                            .get(&(virtual_device.id.clone(), fqdn.clone()))
-                            .is_some(),
-                        results
-                            .get(&(virtual_device.id.clone(), fqdn.clone()))
-                            .is_some()
+                        is_in_db,
+                        is_in_incoming,
+                        is_in_results
                     );
                 }
             } else {
                 // remove from db if present and not in flight
                 // remove from in-flight if in flight - is it necessary though?
 
-                if db_device_hosts
-                    .get(&(virtual_device.id.clone(), host.clone()))
-                    .is_some()
-                {
+                if is_in_db {
                     remove_device_host(virtual_device.id.clone(), host.clone(), &mut results);
                 } else {
                     // It wasn't in the DB in the first place, nothing to do
