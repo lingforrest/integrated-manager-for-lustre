@@ -277,14 +277,14 @@ pub fn compute_virtual_device_changes<'a>(
                     .get(&(virtual_device.id.clone(), host.clone()))
                     .is_none();
 
-                if !is_in_db && is_in_results {
+                if !is_in_db {
                     add_device_host(
                         virtual_device.id.clone(),
                         host.clone(),
                         virtual_device_host,
                         &mut results,
                     );
-                } else if is_in_db && is_in_results {
+                } else if is_in_db {
                     update_device_host(
                         virtual_device.id.clone(),
                         host.clone(),
@@ -353,7 +353,7 @@ mod test {
     #[test_case("vd_with_two_levels_of_shared_parents_in_reverse_order_added_to_oss2")]
     #[test_case("vd_with_three_levels_of_shared_parents_in_reverse_order_added_to_oss2")]
     fn compute_virtual_device_changes(test_name: &str) {
-        crate::db::test::_init_subscriber();
+        // crate::db::test::_init_subscriber();
         let (fqdn, incoming_devices, incoming_device_hosts, db_devices, db_device_hosts) =
             deser_fixture(test_name);
 
