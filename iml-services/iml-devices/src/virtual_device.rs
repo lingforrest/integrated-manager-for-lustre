@@ -11,6 +11,7 @@ use std::collections::{BTreeMap, BTreeSet};
 fn is_virtual_device(device: &Device) -> bool {
     device.device_type == DeviceType::MdRaid
         || device.device_type == DeviceType::VolumeGroup
+        || device.device_type == DeviceType::LogicalVolume
         || device.device_type == DeviceType::Dataset
         || device.device_type == DeviceType::Zpool
 }
@@ -194,6 +195,7 @@ pub fn compute_virtual_device_changes<'a>(
         .filter(|(_, d)| is_virtual_device(d))
         .map(|(_, d)| d);
     let vd2 = virtual_devices.clone();
+    let vd3 = virtual_devices.clone();
 
     // We're iterating the device twice
     // Consider devices h -> g -> f -> e
@@ -203,9 +205,9 @@ pub fn compute_virtual_device_changes<'a>(
     // f will be added
     // then on second iteration e will find previously added f and will be added
 
-    // what happens on 10 -> 9 -> 8 -> 7 -> 6 -> 5
-    // where 5-7 are virtual?
-    for virtual_device in virtual_devices.chain(vd2) {
+    // Limitation: we support up to three levels currently
+    // We need to look into more generic algorithm in the future
+    for virtual_device in virtual_devices.chain(vd2).chain(vd3) {
         tracing::info!(
             "virtual_device: {:?}, parents: {:?}, children: {:?}",
             virtual_device.id,
@@ -349,8 +351,9 @@ mod test {
     // Virtual device that is parent of the updated receives update that isn't necessary but isn't harmful
     #[test_case("vd_with_two_levels_of_shared_parents_updated_on_oss2")]
     #[test_case("vd_with_two_levels_of_shared_parents_in_reverse_order_added_to_oss2")]
+    #[test_case("vd_with_three_levels_of_shared_parents_in_reverse_order_added_to_oss2")]
     fn compute_virtual_device_changes(test_name: &str) {
-        // crate::db::test::_init_subscriber();
+        crate::db::test::_init_subscriber();
         let (fqdn, incoming_devices, incoming_device_hosts, db_devices, db_device_hosts) =
             deser_fixture(test_name);
 
