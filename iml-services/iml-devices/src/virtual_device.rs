@@ -149,15 +149,20 @@ fn are_all_parents_available_with_results(
     let all_available = i.all(|p| {
         let result = device_hosts.get(&(p.clone(), host.clone())).is_some();
         tracing::info!("Checking device {:?} on host {:?}: {:?}", p, host, result);
-        let result_results = results.get(&(p.clone(), host.clone())).is_some();
-        tracing::info!(
-            "Checking device {:?} on host {:?} in results: {:?}",
-            p,
-            host,
-            result_results
-        );
+        let result_results = if !result {
+            let result_results = results.get(&(p.clone(), host.clone())).is_some();
+            tracing::info!(
+                "Checking device {:?} on host {:?} in results: {:?}",
+                p,
+                host,
+                result_results
+            );
+            Some(result_results)
+        } else {
+            None
+        };
 
-        result || result_results
+        result || result_results.unwrap()
     });
     tracing::info!(
         "Host: {:?}, device: {:?}, all_available: {:?}",
@@ -190,10 +195,19 @@ pub fn compute_virtual_device_changes<'a>(
         .map(|(_, d)| d);
 
     for virtual_device in virtual_devices {
-        tracing::info!("virtual_device: {:#?}", virtual_device);
+        tracing::info!(
+            "virtual_device: {:?}, parents: {:?}, children: {:?}",
+            virtual_device.id,
+            virtual_device.parents,
+            virtual_device.children
+        );
         let virtual_device_host =
             incoming_device_hosts.get(&(virtual_device.id.clone(), fqdn.clone()));
-        tracing::info!("virtual_device_host: {:#?}", virtual_device_host);
+        tracing::info!(
+            "virtual_device_host: {:?}, fqdn: {:?}",
+            virtual_device_host.map(|x| &x.device_id),
+            virtual_device_host.map(|x| &x.fqdn)
+        );
 
         // For this host itself, run parents check for this virtual device ON THE INCOMING DEVICE HOSTS
         // If it fails, remove the device host of this virtual device FROM THE DB
@@ -212,7 +226,7 @@ pub fn compute_virtual_device_changes<'a>(
                 let is_in_db = db_device_hosts
                     .get(&(virtual_device.id.clone(), fqdn.clone()))
                     .is_some();
-                    
+
                 if is_in_db {
                     remove_device_host(virtual_device.id.clone(), fqdn.clone(), &mut results);
                 }
@@ -229,6 +243,7 @@ pub fn compute_virtual_device_changes<'a>(
             .collect();
 
         for host in all_other_host_fqdns {
+            // We want to look at in-flight changes (results)?
             let all_available = are_all_parents_available_with_results(
                 incoming_devices,
                 &db_device_hosts,
