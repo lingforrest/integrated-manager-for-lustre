@@ -224,10 +224,7 @@ pub fn compute_virtual_device_changes<'a>(
         // This is because main loop processes updates from single host at a time.
         // That means current state of other hosts is in DB at this point.
 
-        // TODO: Consider just using db_device_hosts. Incoming are only for current fqdn
-        let all_other_host_fqdns: BTreeSet<_> = incoming_device_hosts
-            .iter()
-            .chain(db_device_hosts.iter())
+        let all_other_host_fqdns: BTreeSet<_> = db_device_hosts.iter()
             .filter_map(|((_, f), _)| if f != fqdn { Some(f) } else { None })
             .collect();
 
@@ -247,9 +244,6 @@ pub fn compute_virtual_device_changes<'a>(
                 if db_device_hosts
                     .get(&(virtual_device.id.clone(), host.clone()))
                     .is_none()
-                    && incoming_device_hosts
-                        .get(&(virtual_device.id.clone(), host.clone()))
-                        .is_none()
                     && results
                         .get(&(virtual_device.id.clone(), host.clone()))
                         .is_none()
@@ -263,9 +257,6 @@ pub fn compute_virtual_device_changes<'a>(
                 } else if db_device_hosts
                     .get(&(virtual_device.id.clone(), host.clone()))
                     .is_some()
-                    && incoming_device_hosts
-                        .get(&(virtual_device.id.clone(), host.clone()))
-                        .is_none()
                     && results
                         .get(&(virtual_device.id.clone(), host.clone()))
                         .is_none()
@@ -276,11 +267,6 @@ pub fn compute_virtual_device_changes<'a>(
                         virtual_device_host,
                         &mut results,
                     );
-                } else if results
-                    .get(&(virtual_device.id.clone(), host.clone()))
-                    .is_some()
-                {
-                    unreachable!();
                 } else {
                     tracing::warn!(
                         "DB: {:?}, incoming: {:?}, results: {:?}",
