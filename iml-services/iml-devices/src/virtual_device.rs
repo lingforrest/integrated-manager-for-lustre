@@ -24,7 +24,7 @@ fn make_other_device_host(
     DeviceHost {
         device_id,
         fqdn,
-        local: true,
+        local: false,
         // Does it make sense to use paths from other hosts?
         paths: Paths(
             virtual_device_host
@@ -49,7 +49,7 @@ fn make_other_device_host_for_removal(device_id: DeviceId, fqdn: Fqdn) -> Device
     DeviceHost {
         device_id,
         fqdn,
-        local: true,
+        local: false,
         paths: Paths(BTreeSet::new()),
         mount_path: MountPath(None),
         fs_type: None,
