@@ -127,7 +127,7 @@ fn are_all_parents_available(
     let mut i = BreadthFirstParentIterator::new(devices, child_id);
     let all_available = i.all(|p| {
         let result = device_hosts.get(&(p.clone(), host.clone())).is_some();
-        tracing::info!("Checking device {:?} on host {:?}: {:?}", p, host, result);
+        tracing::trace!("Checking device {:?} on host {:?}: {:?}", p, host, result);
         result
     });
     tracing::info!(
@@ -149,10 +149,10 @@ fn are_all_parents_available_with_results(
     let mut i = BreadthFirstParentIterator::new(devices, child_id);
     let all_available = i.all(|p| {
         let result = device_hosts.get(&(p.clone(), host.clone())).is_some();
-        tracing::info!("Checking device {:?} on host {:?}: {:?}", p, host, result);
+        tracing::trace!("Checking device {:?} on host {:?}: {:?}", p, host, result);
         let result_results = if !result {
             let result_results = results.get(&(p.clone(), host.clone())).is_some();
-            tracing::info!(
+            tracing::trace!(
                 "Checking device {:?} on host {:?} in results: {:?}",
                 p,
                 host,
