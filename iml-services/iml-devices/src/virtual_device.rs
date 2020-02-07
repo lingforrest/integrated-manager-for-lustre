@@ -197,7 +197,9 @@ pub fn compute_virtual_device_changes<'a>(
 
         // For this host itself, run parents check for this virtual device ON THE INCOMING DEVICE HOSTS
         // If it fails, remove the device host of this virtual device FROM THE DB
-        // We can have incoming devices where there are two levels of parents of virtual devices
+        // We don't add virtual devices here because either:
+        // 1. Device-scanner sends us the virtual device, if it's initially available on this host
+        // 2. We will add it while processing other hosts, if it's not initially available on this host
         {
             let all_available = are_all_parents_available(
                 incoming_devices,
@@ -206,16 +208,13 @@ pub fn compute_virtual_device_changes<'a>(
                 &virtual_device.id,
             );
             if !all_available {
+                // remove from db if present
                 let is_in_db = db_device_hosts
                     .get(&(virtual_device.id.clone(), fqdn.clone()))
                     .is_some();
-                // remove from db if present and not in flight
-                // remove from in-flight if in flight - is it necessary though?
-
+                    
                 if is_in_db {
                     remove_device_host(virtual_device.id.clone(), fqdn.clone(), &mut results);
-                } else {
-                    // It wasn't in the DB in the first place, nothing to do
                 }
             }
         }
