@@ -1,5 +1,5 @@
 amqp==2.4.0
-Django==1.11.23
+Django==1.11.28
 django-picklefield==1.0.0
 django-tastypie==0.14.1
 https://github.com/weholt/massiviu/archive/master.tar.gz
