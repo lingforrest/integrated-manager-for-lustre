@@ -252,7 +252,6 @@ pub enum Msg {
     EventSourceMessage(MessageEvent),
     FilesystemsPage(page::filesystems::Msg),
     FilesystemPage(page::filesystem::Msg),
-    FsDashboardPage(page::fs_dashboard::Msg),
     GetSession,
     GotSession(fetch::ResponseDataResult<Session>),
     HideMenu,
@@ -525,11 +524,6 @@ pub fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg, GMsg>) 
                 page::filesystems::update(msg, &model.records, page, &mut orders.proxy(Msg::FilesystemsPage))
             }
         }
-        Msg::FsDashboardPage(msg) => {
-            if let Page::FsDashboard(page) = &mut model.page {
-                page::fs_dashboard::update(msg, page, &mut orders.proxy(Msg::FsDashboardPage))
-            }
-        }
         Msg::StartSliderTracking => {
             model.track_slider = true;
         }
@@ -699,7 +693,7 @@ pub fn main_panels(model: &Model, children: impl View<Msg>) -> impl View<Msg> {
                     C.flex_col,
                     C.flex_grow,
                     C.flex_shrink_0,
-                    C.bg_gray_300,
+                    C.bg_gray_200,
                     C.lg__w_0,
                     C.lg__h_main_content,
                 ],
@@ -719,8 +713,7 @@ fn view(model: &Model) -> Vec<Node<Msg>> {
         Page::AppLoading => loading::view().els(),
         Page::About => main_panels(model, page::about::view(model)).els(),
         Page::Activity => main_panels(model, page::activity::view(model)).els(),
-        Page::Dashboard(page) => main_panels(model, page::dashboard::view(page)).els(),
-        Page::FsDashboard(page) => main_panels(model, page::fs_dashboard::view(page)).els(),
+        Page::Dashboard => main_panels(model, page::dashboard::view(model)).els(),
         Page::Filesystems(page) => main_panels(
             model,
             page::filesystems::view(&model.records, page, &model.locks)
@@ -735,8 +728,6 @@ fn view(model: &Model) -> Vec<Node<Msg>> {
                 .map_msg(Msg::FilesystemPage),
         )
         .els(),
-        Page::ServerDashboard(page) => main_panels(model, page::server_dashboard::view(&model.records, page)).els(),
-        Page::TargetDashboard(page) => main_panels(model, page::target_dashboard::view(&model.records, page)).els(),
         Page::Jobstats => main_panels(model, page::jobstats::view(model)).els(),
         Page::Login(x) => page::login::view(x).els().map_msg(Msg::Login),
         Page::Logs => main_panels(model, page::logs::view(model)).els(),
