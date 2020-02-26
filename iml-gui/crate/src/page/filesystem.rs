@@ -27,6 +27,12 @@ pub struct Model {
     pub rows: HashMap<u32, Row>,
 }
 
+impl Model {
+    fn stratagem_ready(&self) -> bool {
+        !self.mdts.is_empty()
+    }
+}
+
 #[derive(Clone)]
 pub enum Msg {
     ActionDropdown(Box<action_dropdown::IdMsg>),
