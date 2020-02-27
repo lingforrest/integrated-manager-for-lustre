@@ -21,9 +21,26 @@ use std::io;
 #[cfg(feature = "postgres-interop")]
 use tokio_postgres::Row;
 
+#[derive(
+    serde::Serialize, serde::Deserialize, Clone, Debug, Eq, PartialEq, PartialOrd, Ord, Hash,
+)]
+pub enum Id_ {
+    U32(u32),
+    String(String),
+}
+
+impl fmt::Display for Id_ {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            Self::U32(u) => write!(f, "{}", u),
+            Self::String(ref s) => write!(f, "{}", s),
+        }
+    }
+}
+
 pub trait Id {
     /// Returns the `Id` (`u32`).
-    fn id(&self) -> u32;
+    fn id(&self) -> Id_;
 }
 
 pub trait NotDeleted {
@@ -64,8 +81,8 @@ pub struct ContentTypeRecord {
 }
 
 impl Id for ContentTypeRecord {
-    fn id(&self) -> u32 {
-        self.id
+    fn id(&self) -> Id_ {
+        Id_::U32(self.id)
     }
 }
 
@@ -104,8 +121,8 @@ pub struct FsRecord {
 }
 
 impl Id for FsRecord {
-    fn id(&self) -> u32 {
-        self.id
+    fn id(&self) -> Id_ {
+        Id_::U32(self.id)
     }
 }
 
@@ -136,8 +153,8 @@ pub struct VolumeRecord {
 }
 
 impl Id for VolumeRecord {
-    fn id(&self) -> u32 {
-        self.id
+    fn id(&self) -> Id_ {
+        Id_::U32(self.id)
     }
 }
 
@@ -170,14 +187,14 @@ pub struct VolumeNodeRecord {
 }
 
 impl Id for VolumeNodeRecord {
-    fn id(&self) -> u32 {
-        self.id
+    fn id(&self) -> Id_ {
+        Id_::U32(self.id)
     }
 }
 
 impl Id for &VolumeNodeRecord {
-    fn id(&self) -> u32 {
-        self.id
+    fn id(&self) -> Id_ {
+        Id_::U32(self.id)
     }
 }
 
@@ -238,8 +255,8 @@ pub struct ManagedTargetMountRecord {
 }
 
 impl Id for ManagedTargetMountRecord {
-    fn id(&self) -> u32 {
-        self.id
+    fn id(&self) -> Id_ {
+        Id_::U32(self.id)
     }
 }
 
@@ -293,8 +310,8 @@ pub struct ManagedTargetRecord {
 }
 
 impl Id for ManagedTargetRecord {
-    fn id(&self) -> u32 {
-        self.id
+    fn id(&self) -> Id_ {
+        Id_::U32(self.id)
     }
 }
 
@@ -323,14 +340,14 @@ pub struct OstPoolRecord {
 }
 
 impl Id for OstPoolRecord {
-    fn id(&self) -> u32 {
-        self.id
+    fn id(&self) -> Id_ {
+        Id_::U32(self.id)
     }
 }
 
 impl Id for &OstPoolRecord {
-    fn id(&self) -> u32 {
-        self.id
+    fn id(&self) -> Id_ {
+        Id_::U32(self.id)
     }
 }
 
@@ -384,8 +401,8 @@ pub struct OstPoolOstsRecord {
 }
 
 impl Id for OstPoolOstsRecord {
-    fn id(&self) -> u32 {
-        self.id
+    fn id(&self) -> Id_ {
+        Id_::U32(self.id)
     }
 }
 
@@ -417,8 +434,8 @@ pub struct ManagedOstRecord {
 }
 
 impl Id for ManagedOstRecord {
-    fn id(&self) -> u32 {
-        self.managedtarget_ptr_id
+    fn id(&self) -> Id_ {
+        Id_::U32(self.managedtarget_ptr_id)
     }
 }
 
@@ -445,8 +462,8 @@ pub struct ManagedMdtRecord {
 }
 
 impl Id for ManagedMdtRecord {
-    fn id(&self) -> u32 {
-        self.managedtarget_ptr_id
+    fn id(&self) -> Id_ {
+        Id_::U32(self.managedtarget_ptr_id)
     }
 }
 
@@ -485,8 +502,8 @@ pub struct ManagedHostRecord {
 }
 
 impl Id for ManagedHostRecord {
-    fn id(&self) -> u32 {
-        self.id
+    fn id(&self) -> Id_ {
+        Id_::U32(self.id)
     }
 }
 
@@ -529,8 +546,8 @@ impl AlertStateRecord {
 }
 
 impl Id for AlertStateRecord {
-    fn id(&self) -> u32 {
-        self.id
+    fn id(&self) -> Id_ {
+        Id_::U32(self.id)
     }
 }
 
@@ -576,8 +593,8 @@ impl From<Row> for StratagemConfiguration {
 }
 
 impl Id for StratagemConfiguration {
-    fn id(&self) -> u32 {
-        self.id
+    fn id(&self) -> Id_ {
+        Id_::U32(self.id)
     }
 }
 
@@ -636,8 +653,8 @@ impl From<Row> for LnetConfigurationRecord {
 }
 
 impl Id for LnetConfigurationRecord {
-    fn id(&self) -> u32 {
-        self.id
+    fn id(&self) -> Id_ {
+        Id_::U32(self.id)
     }
 }
 
@@ -661,7 +678,7 @@ impl Label for LnetConfigurationRecord {
 
 impl ToCompositeId for LnetConfigurationRecord {
     fn composite_id(&self) -> CompositeId {
-        CompositeId(self.content_type_id.unwrap(), self.id)
+        CompositeId(self.content_type_id.unwrap(), Id_::U32(self.id))
     }
 }
 

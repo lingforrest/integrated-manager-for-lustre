@@ -4,7 +4,7 @@
 
 use crate::{
     db::{
-        ContentTypeRecord, Id, LnetConfigurationRecord, ManagedTargetMountRecord,
+        ContentTypeRecord, Id, Id_, LnetConfigurationRecord, ManagedTargetMountRecord,
         OstPoolOstsRecord, OstPoolRecord, StratagemConfiguration, VolumeNodeRecord,
     },
     Alert, CompositeId, EndpointNameSelf, Filesystem, Host, Label, LockChange, Target,
@@ -42,7 +42,7 @@ pub struct ArcValues<'a, K: 'a, V: 'a>(im::hashmap::Values<'a, K, Arc<V>>);
 
 impl<'a, K, V, S> ArcValuesExt<K, V> for HashMap<K, Arc<V>, S>
 where
-    K: Hash + Eq + Copy,
+    K: Hash + Eq + Clone,
     V: Clone,
     S: BuildHasher,
 {
@@ -69,18 +69,18 @@ impl<'a, K, V> FusedIterator for ArcValues<'a, K, V> {}
 
 fn hashmap_to_arc_hashmap<K, V>(hm: &HashMap<K, V>) -> HashMap<K, Arc<V>>
 where
-    K: Hash + Eq + Copy,
+    K: Hash + Eq + Clone,
     V: Clone,
 {
-    hm.iter().map(|(k, v)| (*k, Arc::new(v.clone()))).collect()
+    hm.iter().map(|(k, v)| (k.clone(), Arc::new(v.clone()))).collect()
 }
 
 fn arc_hashmap_to_hashmap<K, V>(hm: &HashMap<K, Arc<V>>) -> HashMap<K, V>
 where
-    K: Hash + Eq + Copy,
+    K: Hash + Eq + Clone,
     V: Clone,
 {
-    hm.iter().map(|(k, v)| (*k, (**v).clone())).collect()
+    hm.iter().map(|(k, v)| (k.clone(), (**v).clone())).collect()
 }
 
 /// The current state of locks based on data from the locks queue
@@ -89,67 +89,77 @@ pub type Locks = HashMap<String, HashSet<LockChange>>;
 #[derive(serde::Serialize, serde::Deserialize, Default, PartialEq, Clone, Debug)]
 pub struct Cache {
     pub content_type: HashMap<u32, ContentTypeRecord>,
-    pub active_alert: HashMap<u32, Alert>,
-    pub filesystem: HashMap<u32, Filesystem>,
-    pub host: HashMap<u32, Host>,
-    pub lnet_configuration: HashMap<u32, LnetConfigurationRecord>,
-    pub managed_target_mount: HashMap<u32, ManagedTargetMountRecord>,
-    pub ost_pool: HashMap<u32, OstPoolRecord>,
-    pub ost_pool_osts: HashMap<u32, OstPoolOstsRecord>,
-    pub stratagem_config: HashMap<u32, StratagemConfiguration>,
-    pub target: HashMap<u32, Target<TargetConfParam>>,
-    pub volume: HashMap<u32, Volume>,
-    pub volume_node: HashMap<u32, VolumeNodeRecord>,
+    pub active_alert: HashMap<Id_, Alert>,
+    pub filesystem: HashMap<Id_, Filesystem>,
+    pub host: HashMap<Id_, Host>,
+    pub lnet_configuration: HashMap<Id_, LnetConfigurationRecord>,
+    pub managed_target_mount: HashMap<Id_, ManagedTargetMountRecord>,
+    pub ost_pool: HashMap<Id_, OstPoolRecord>,
+    pub ost_pool_osts: HashMap<Id_, OstPoolOstsRecord>,
+    pub stratagem_config: HashMap<Id_, StratagemConfiguration>,
+    pub target: HashMap<Id_, Target<TargetConfParam>>,
+    pub volume: HashMap<Id_, Volume>,
+    pub volume_node: HashMap<Id_, VolumeNodeRecord>,
 }
 
 #[derive(Default, PartialEq, Clone, Debug)]
 pub struct ArcCache {
     pub content_type: HashMap<u32, Arc<ContentTypeRecord>>,
-    pub active_alert: HashMap<u32, Arc<Alert>>,
-    pub filesystem: HashMap<u32, Arc<Filesystem>>,
-    pub host: HashMap<u32, Arc<Host>>,
-    pub lnet_configuration: HashMap<u32, Arc<LnetConfigurationRecord>>,
-    pub managed_target_mount: HashMap<u32, Arc<ManagedTargetMountRecord>>,
-    pub ost_pool: HashMap<u32, Arc<OstPoolRecord>>,
-    pub ost_pool_osts: HashMap<u32, Arc<OstPoolOstsRecord>>,
-    pub stratagem_config: HashMap<u32, Arc<StratagemConfiguration>>,
-    pub target: HashMap<u32, Arc<Target<TargetConfParam>>>,
-    pub volume: HashMap<u32, Arc<Volume>>,
-    pub volume_node: HashMap<u32, Arc<VolumeNodeRecord>>,
+    pub active_alert: HashMap<Id_, Arc<Alert>>,
+    pub filesystem: HashMap<Id_, Arc<Filesystem>>,
+    pub host: HashMap<Id_, Arc<Host>>,
+    pub lnet_configuration: HashMap<Id_, Arc<LnetConfigurationRecord>>,
+    pub managed_target_mount: HashMap<Id_, Arc<ManagedTargetMountRecord>>,
+    pub ost_pool: HashMap<Id_, Arc<OstPoolRecord>>,
+    pub ost_pool_osts: HashMap<Id_, Arc<OstPoolOstsRecord>>,
+    pub stratagem_config: HashMap<Id_, Arc<StratagemConfiguration>>,
+    pub target: HashMap<Id_, Arc<Target<TargetConfParam>>>,
+    pub volume: HashMap<Id_, Arc<Volume>>,
+    pub volume_node: HashMap<Id_, Arc<VolumeNodeRecord>>,
 }
 
 impl Cache {
     /// Removes the record from the cache
     pub fn remove_record(&mut self, x: RecordId) -> bool {
         match x {
-            RecordId::ActiveAlert(id) => self.active_alert.remove(&id).is_some(),
-            RecordId::Filesystem(id) => self.filesystem.remove(&id).is_some(),
-            RecordId::Host(id) => self.host.remove(&id).is_some(),
-            RecordId::LnetConfiguration(id) => self.lnet_configuration.remove(&id).is_some(),
+            RecordId::ActiveAlert(id) => self.active_alert.remove(&Id_::U32(id)).is_some(),
+            RecordId::Filesystem(id) => self.filesystem.remove(&Id_::U32(id)).is_some(),
+            RecordId::Host(id) => self.host.remove(&Id_::U32(id)).is_some(),
+            RecordId::LnetConfiguration(id) => {
+                self.lnet_configuration.remove(&Id_::U32(id)).is_some()
+            }
             RecordId::ContentType(id) => self.content_type.remove(&id).is_some(),
-            RecordId::ManagedTargetMount(id) => self.managed_target_mount.remove(&id).is_some(),
-            RecordId::OstPool(id) => self.ost_pool.remove(&id).is_some(),
-            RecordId::OstPoolOsts(id) => self.ost_pool_osts.remove(&id).is_some(),
-            RecordId::StratagemConfig(id) => self.stratagem_config.remove(&id).is_some(),
-            RecordId::Target(id) => self.target.remove(&id).is_some(),
-            RecordId::Volume(id) => self.volume.remove(&id).is_some(),
-            RecordId::VolumeNode(id) => self.volume_node.remove(&id).is_some(),
+            RecordId::ManagedTargetMount(id) => {
+                self.managed_target_mount.remove(&Id_::U32(id)).is_some()
+            }
+            RecordId::OstPool(id) => self.ost_pool.remove(&Id_::U32(id)).is_some(),
+            RecordId::OstPoolOsts(id) => self.ost_pool_osts.remove(&Id_::U32(id)).is_some(),
+            RecordId::StratagemConfig(id) => self.stratagem_config.remove(&Id_::U32(id)).is_some(),
+            RecordId::Target(id) => self.target.remove(&Id_::U32(id)).is_some(),
+            RecordId::Volume(id) => self.volume.remove(&Id_::U32(id)).is_some(),
+            RecordId::VolumeNode(id) => self.volume_node.remove(&Id_::U32(id)).is_some(),
         }
     }
     /// Inserts the record into the cache
     pub fn insert_record(&mut self, x: Record) {
         match x {
             Record::ActiveAlert(x) => {
-                self.active_alert.insert(x.id, x);
+                self.active_alert.insert(Id_::U32(x.id), x);
             }
             Record::Filesystem(x) => {
-                self.filesystem.insert(x.id, x);
+                self.filesystem.insert(Id_::U32(x.id), x);
             }
             Record::Host(x) => {
-                self.host.insert(x.id, x);
+                self.host.insert(Id_::U32(x.id), x);
             }
             Record::ContentType(x) => {
-                self.content_type.insert(x.id(), x);
+                self.content_type.insert(
+                    match x.id() {
+                        Id_::U32(u) => u,
+                        _ => panic!("ContentTypeRecord can't have other types of Id"),
+                    },
+                    x,
+                );
             }
             Record::LnetConfiguration(x) => {
                 self.lnet_configuration.insert(x.id(), x);
@@ -167,10 +177,10 @@ impl Cache {
                 self.stratagem_config.insert(x.id(), x);
             }
             Record::Target(x) => {
-                self.target.insert(x.id, x);
+                self.target.insert(Id_::U32(x.id), x);
             }
             Record::Volume(x) => {
-                self.volume.insert(x.id, x);
+                self.volume.insert(Id_::U32(x.id), x);
             }
             Record::VolumeNode(x) => {
                 self.volume_node.insert(x.id(), x);
@@ -193,34 +203,44 @@ impl ArcCache {
     /// Removes the record from the arc cache
     pub fn remove_record(&mut self, x: RecordId) -> bool {
         match x {
-            RecordId::ActiveAlert(id) => self.active_alert.remove(&id).is_some(),
-            RecordId::Filesystem(id) => self.filesystem.remove(&id).is_some(),
-            RecordId::Host(id) => self.host.remove(&id).is_some(),
+            RecordId::ActiveAlert(id) => self.active_alert.remove(&Id_::U32(id)).is_some(),
+            RecordId::Filesystem(id) => self.filesystem.remove(&Id_::U32(id)).is_some(),
+            RecordId::Host(id) => self.host.remove(&Id_::U32(id)).is_some(),
             RecordId::ContentType(id) => self.content_type.remove(&id).is_some(),
-            RecordId::LnetConfiguration(id) => self.lnet_configuration.remove(&id).is_some(),
-            RecordId::ManagedTargetMount(id) => self.managed_target_mount.remove(&id).is_some(),
-            RecordId::OstPool(id) => self.ost_pool.remove(&id).is_some(),
-            RecordId::OstPoolOsts(id) => self.ost_pool_osts.remove(&id).is_some(),
-            RecordId::StratagemConfig(id) => self.stratagem_config.remove(&id).is_some(),
-            RecordId::Target(id) => self.target.remove(&id).is_some(),
-            RecordId::Volume(id) => self.volume.remove(&id).is_some(),
-            RecordId::VolumeNode(id) => self.volume_node.remove(&id).is_some(),
+            RecordId::LnetConfiguration(id) => {
+                self.lnet_configuration.remove(&Id_::U32(id)).is_some()
+            }
+            RecordId::ManagedTargetMount(id) => {
+                self.managed_target_mount.remove(&Id_::U32(id)).is_some()
+            }
+            RecordId::OstPool(id) => self.ost_pool.remove(&Id_::U32(id)).is_some(),
+            RecordId::OstPoolOsts(id) => self.ost_pool_osts.remove(&Id_::U32(id)).is_some(),
+            RecordId::StratagemConfig(id) => self.stratagem_config.remove(&Id_::U32(id)).is_some(),
+            RecordId::Target(id) => self.target.remove(&Id_::U32(id)).is_some(),
+            RecordId::Volume(id) => self.volume.remove(&Id_::U32(id)).is_some(),
+            RecordId::VolumeNode(id) => self.volume_node.remove(&Id_::U32(id)).is_some(),
         }
     }
     /// Inserts the record into the cache
     pub fn insert_record(&mut self, x: Record) {
         match x {
             Record::ActiveAlert(x) => {
-                self.active_alert.insert(x.id, Arc::new(x));
+                self.active_alert.insert(Id_::U32(x.id), Arc::new(x));
             }
             Record::Filesystem(x) => {
-                self.filesystem.insert(x.id, Arc::new(x));
+                self.filesystem.insert(Id_::U32(x.id), Arc::new(x));
             }
             Record::Host(x) => {
-                self.host.insert(x.id, Arc::new(x));
+                self.host.insert(Id_::U32(x.id), Arc::new(x));
             }
             Record::ContentType(x) => {
-                self.content_type.insert(x.id(), Arc::new(x));
+                self.content_type.insert(
+                    match x.id() {
+                        Id_::U32(u) => u,
+                        _ => panic!("ContentTypeRecord can't have other types of Id"),
+                    },
+                    Arc::new(x),
+                );
             }
             Record::LnetConfiguration(x) => {
                 self.lnet_configuration.insert(x.id(), Arc::new(x));
@@ -238,10 +258,10 @@ impl ArcCache {
                 self.stratagem_config.insert(x.id(), Arc::new(x));
             }
             Record::Target(x) => {
-                self.target.insert(x.id, Arc::new(x));
+                self.target.insert(Id_::U32(x.id), Arc::new(x));
             }
             Record::Volume(x) => {
-                self.volume.insert(x.id, Arc::new(x));
+                self.volume.insert(Id_::U32(x.id), Arc::new(x));
             }
             Record::VolumeNode(x) => {
                 self.volume_node.insert(x.id(), Arc::new(x));
@@ -382,7 +402,7 @@ pub enum Message {
 #[cfg(test)]
 mod tests {
     use crate::{
-        db::{OstPoolOstsRecord, OstPoolRecord},
+        db::{OstPoolOstsRecord, OstPoolRecord, Id_},
         warp_drive::{ArcCache, ArcValuesExt, Cache},
     };
     use std::sync::Arc;
@@ -406,24 +426,24 @@ mod tests {
             ostpool_id: 2,
             managedost_id: 2,
         });
-        let rec18 = Arc::clone(&c1.ost_pool_osts.get(&18).unwrap());
-        let rec19 = Arc::clone(&c1.ost_pool_osts.get(&19).unwrap());
+        let rec18 = Arc::clone(&c1.ost_pool_osts.get(&Id_::U32(18)).unwrap());
+        let rec19 = Arc::clone(&c1.ost_pool_osts.get(&Id_::U32(19)).unwrap());
 
-        c2.ost_pool_osts.insert(1, Arc::clone(&rec1));
-        c3.ost_pool_osts.insert(2, Arc::clone(&rec2));
+        c2.ost_pool_osts.insert(Id_::U32(1), Arc::clone(&rec1));
+        c3.ost_pool_osts.insert(Id_::U32(2), Arc::clone(&rec2));
 
         // The entries to c2 and c3 are added independently despite sharing the same "body"
         assert_eq!(
             c1.ost_pool_osts,
-            im::hashmap!(18 => Arc::clone(&rec18), 19 => Arc::clone(&rec19))
+            im::hashmap!(Id_::U32(18) => Arc::clone(&rec18), Id_::U32(19) => Arc::clone(&rec19))
         );
         assert_eq!(
             c2.ost_pool_osts,
-            im::hashmap!(18 => Arc::clone(&rec18), 19 => Arc::clone(&rec19), 1 => rec1)
+            im::hashmap!(Id_::U32(18) => Arc::clone(&rec18), Id_::U32(19) => Arc::clone(&rec19), Id_::U32(1) => rec1)
         );
         assert_eq!(
             c3.ost_pool_osts,
-            im::hashmap!(18 => Arc::clone(&rec18), 19 => Arc::clone(&rec19), 2 => rec2)
+            im::hashmap!(Id_::U32(18) => Arc::clone(&rec18), Id_::U32(19) => Arc::clone(&rec19), Id_::U32(2) => rec2)
         );
         // the original cache and the cache - conversion result - should be equal
         assert_eq!(c0, c0_again);
@@ -441,7 +461,7 @@ mod tests {
     fn get_cache() -> Cache {
         let mut cache: Cache = Default::default();
         cache.ost_pool.insert(
-            18,
+            Id_::U32(18),
             OstPoolRecord {
                 id: 18,
                 name: "pool".to_string(),
@@ -451,7 +471,7 @@ mod tests {
             },
         );
         cache.ost_pool_osts.insert(
-            18,
+            Id_::U32(18),
             OstPoolOstsRecord {
                 id: 18,
                 ostpool_id: 18,
@@ -459,7 +479,7 @@ mod tests {
             },
         );
         cache.ost_pool_osts.insert(
-            19,
+            Id_::U32(19),
             OstPoolOstsRecord {
                 id: 19,
                 ostpool_id: 18,

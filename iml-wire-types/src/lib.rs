@@ -2,6 +2,7 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
+use crate::db::Id_;
 use serde_json;
 use std::{
     cmp::{Ord, Ordering},
@@ -278,7 +279,7 @@ impl<T: serde::Serialize> ToBytes for T {
 )]
 #[serde(try_from = "String")]
 #[serde(into = "String")]
-pub struct CompositeId(pub u32, pub u32);
+pub struct CompositeId(pub u32, pub Id_);
 
 impl fmt::Display for CompositeId {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -303,9 +304,13 @@ impl TryFrom<String> for CompositeId {
         }
 
         let x = xs[0].parse::<u32>()?;
-        let y = xs[1].parse::<u32>()?;
-
-        Ok(Self(x, y))
+        // FIXME: This can go wrong if a device has String id that actually parses as a 32-bit integer
+        let y = xs[1].parse::<u32>();
+        if let Ok(y) = y {
+            Ok(Self(x, Id_::U32(y)))
+        } else {
+            Ok(Self(x, Id_::String(xs[1].into())))
+        }
     }
 }
 
@@ -371,7 +376,7 @@ pub struct LockChange {
 
 impl ToCompositeId for LockChange {
     fn composite_id(&self) -> CompositeId {
-        CompositeId(self.content_type_id, self.item_id)
+        CompositeId(self.content_type_id, Id_::U32(self.item_id))
     }
 }
 
@@ -501,7 +506,7 @@ impl FlatQuery for Host {}
 
 impl ToCompositeId for Host {
     fn composite_id(&self) -> CompositeId {
-        CompositeId(self.content_type_id, self.id)
+        CompositeId(self.content_type_id, Id_::U32(self.id))
     }
 }
 
@@ -524,14 +529,14 @@ impl ResourceUri for Host {
 }
 
 impl db::Id for Host {
-    fn id(&self) -> u32 {
-        self.id
+    fn id(&self) -> Id_ {
+        Id_::U32(self.id)
     }
 }
 
 impl db::Id for &Host {
-    fn id(&self) -> u32 {
-        self.id
+    fn id(&self) -> Id_ {
+        Id_::U32(self.id)
     }
 }
 
@@ -788,14 +793,14 @@ impl Label for &Volume {
 }
 
 impl db::Id for Volume {
-    fn id(&self) -> u32 {
-        self.id
+    fn id(&self) -> Id_ {
+        Id_::U32(self.id)
     }
 }
 
 impl db::Id for &Volume {
-    fn id(&self) -> u32 {
-        self.id
+    fn id(&self) -> Id_ {
+        Id_::U32(self.id)
     }
 }
 
@@ -889,13 +894,13 @@ impl<T> FlatQuery for Target<T> {
 
 impl<T> ToCompositeId for Target<T> {
     fn composite_id(&self) -> CompositeId {
-        CompositeId(self.content_type_id, self.id)
+        CompositeId(self.content_type_id, Id_::U32(self.id))
     }
 }
 
 impl<T> ToCompositeId for &Target<T> {
     fn composite_id(&self) -> CompositeId {
-        CompositeId(self.content_type_id, self.id)
+        CompositeId(self.content_type_id, Id_::U32(self.id))
     }
 }
 
@@ -930,8 +935,8 @@ impl<T> EndpointName for Target<T> {
 }
 
 impl<T> db::Id for Target<T> {
-    fn id(&self) -> u32 {
-        self.id
+    fn id(&self) -> Id_ {
+        Id_::U32(self.id)
     }
 }
 
@@ -992,7 +997,7 @@ impl FlatQuery for Filesystem {
 
 impl ToCompositeId for Filesystem {
     fn composite_id(&self) -> CompositeId {
-        CompositeId(self.content_type_id, self.id)
+        CompositeId(self.content_type_id, Id_::U32(self.id))
     }
 }
 
@@ -1015,14 +1020,14 @@ impl Label for &Filesystem {
 }
 
 impl db::Id for Filesystem {
-    fn id(&self) -> u32 {
-        self.id
+    fn id(&self) -> Id_ {
+        Id_::U32(self.id)
     }
 }
 
 impl db::Id for &Filesystem {
-    fn id(&self) -> u32 {
-        self.id
+    fn id(&self) -> Id_ {
+        Id_::U32(self.id)
     }
 }
 

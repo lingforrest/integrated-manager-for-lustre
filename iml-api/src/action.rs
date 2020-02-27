@@ -102,6 +102,7 @@ type CompositeIds = Vec<CompositeId>;
 #[cfg(test)]
 mod tests {
     use super::*;
+    use iml_wire_types::db::Id_;
 
     #[tokio::test]
     async fn test_composite_ids_to_query_string() {
@@ -111,7 +112,10 @@ mod tests {
             .await
             .unwrap();
 
-        assert_eq!(v, vec![CompositeId(1, 2), CompositeId(3, 4)]);
+        assert_eq!(
+            v,
+            vec![CompositeId(1, Id_::U32(2)), CompositeId(3, Id_::U32(4))]
+        );
     }
 
     #[tokio::test]

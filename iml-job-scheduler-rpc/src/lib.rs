@@ -157,7 +157,7 @@ pub async fn available_transitions(
     client: &Connection,
     ids: &[CompositeId],
 ) -> Result<HashMap<CompositeId, Vec<Transition>>, ImlJobSchedulerRpcError> {
-    let ids: Vec<_> = ids.iter().map(|x| (x.0, x.1)).collect();
+    let ids: Vec<_> = ids.iter().map(|x| (x.0, x.1.clone())).collect();
 
     call(client, "available_transitions", vec![ids], None).await
 }
@@ -177,7 +177,7 @@ pub async fn available_jobs(
     client: &Connection,
     ids: &[CompositeId],
 ) -> Result<HashMap<CompositeId, Vec<Job>>, ImlJobSchedulerRpcError> {
-    let ids: Vec<_> = ids.iter().map(|x| (x.0, x.1)).collect();
+    let ids: Vec<_> = ids.iter().map(|x| (x.0, x.1.clone())).collect();
 
     call(client, "available_jobs", vec![ids], None).await
 }
