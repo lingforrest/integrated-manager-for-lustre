@@ -122,7 +122,18 @@ pub async fn get<T: DeserializeOwned + Debug>(
         .await?
         .error_for_status()?;
 
-    let json = resp.json().await?;
+    tracing::trace!("-3 {:?}", resp);
+    let text = resp.text().await;
+    tracing::trace!("-2 {:?}", text);
+    let text = text?;
+    let mut f = std::fs::File::create("/tmp/json.json").unwrap();
+    use std::io::Write;
+    f.write_all(text.as_bytes()).unwrap();
+
+    let json = serde_json::from_str(&text);
+    tracing::trace!("-1 {:?}", json);
+
+    let json = json?;
 
     tracing::debug!("Resp: {:?}", json);
 

@@ -218,8 +218,14 @@ pub async fn populate_from_api(shared_api_cache: SharedCache) -> Result<(), ImlM
         Filesystem::endpoint_name(),
         Filesystem::query(),
     )
-    .map_ok(|fs: ApiList<Filesystem>| fs.objects)
-    .map_ok(|fs: Vec<Filesystem>| fs.into_iter().map(|f| (f.id, f)).collect());
+    .map_ok(|fs: ApiList<Filesystem>| {
+        tracing::trace!("1 {:?}", fs);
+        fs.objects
+    })
+    .map_ok(|fs: Vec<Filesystem>| {
+        tracing::trace!("2 {:?}", fs);
+        fs.into_iter().map(|f| (f.id, f)).collect()
+    });
 
     let target_fut = get_retry(
         client.clone(),
@@ -241,8 +247,24 @@ pub async fn populate_from_api(shared_api_cache: SharedCache) -> Result<(), ImlM
         .map_ok(|x: ApiList<Volume>| x.objects)
         .map_ok(|x: Vec<Volume>| x.into_iter().map(|x| (x.id, x)).collect());
 
-    let (filesystem, target, alert, host, volume) =
-        future::try_join5(fs_fut, target_fut, active_alert_fut, host_fut, volume_fut).await?;
+    tracing::debug!("fs");
+    let filesystem = fs_fut.await?;
+
+    tracing::debug!("target");
+    let target = target_fut.await?;
+
+    tracing::debug!("alert");
+    let alert = active_alert_fut.await?;
+
+    tracing::debug!("host");
+    let host = host_fut.await?;
+
+    tracing::debug!("volume");
+    let volume = volume_fut.await?;
+
+    tracing::debug!("end");
+    // let (filesystem, target, alert, host, volume) =
+    //     future::try_join5(fs_fut, target_fut, active_alert_fut, host_fut, volume_fut).await?;
 
     let mut api_cache = shared_api_cache.lock().await;
 

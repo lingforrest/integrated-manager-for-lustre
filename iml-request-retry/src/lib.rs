@@ -87,6 +87,8 @@ where
                 return Ok(x);
             }
             Err(e) => {
+                tracing::trace!("0 {:?}", e);
+
                 let action = policy.on_err(request_no, e);
                 tracing::debug!("on request: {} => action: {:?}", request_no, action);
                 match action {
