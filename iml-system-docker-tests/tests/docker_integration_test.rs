@@ -3,6 +3,7 @@
 // license that can be found in the LICENSE file.
 
 use iml_system_test_utils::{docker, iml, vagrant, CheckedStatus};
+use iml_systemd;
 
 #[tokio::test]
 async fn test_docker_setup() -> Result<(), Box<dyn std::error::Error>> {
@@ -10,9 +11,10 @@ async fn test_docker_setup() -> Result<(), Box<dyn std::error::Error>> {
 
     // remove the stack if it is running and clean up volumes and network
     docker::remove_iml_stack().await?;
+    docker::system_prune().await?;
     docker::volume_prune().await?;
-    docker::network_prune().await?;
     docker::configure_docker_overrides().await?;
+    iml_systemd::restart_unit("docker.service".into()).await?;
 
     // Destroy any vagrant nodes that are currently running
     vagrant::destroy().await?.checked_status().await?;
